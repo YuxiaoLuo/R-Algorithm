@@ -1,0 +1,117 @@
+f.tm <- function(d, x, y){ # function of x,y,d
+  
+  
+    xm <- matrix(rep(NA, length(x)*(d+1)), nrow = length(x), ncol = d+1) 
+    mse <- 0
+    theta <- 0
+    
+    for(i in 1:(d+1)){
+      
+      #add each vector with different d exponential to the matrix xm
+      xm[,i] <- x^(i-1) 
+      
+    }#end for loop
+    
+    #compute theta through normal equation    
+    theta <- ginv((t(xm) %*% xm)) %*% t(xm) %*% y 
+    
+    for(j in 1:length(x)){
+      
+      mse <- mse + (y[j] - xm[j,] %*% theta)^2
+      
+    }#end for loop
+    
+    mse <- mse/length(x)
+    
+    THETA <- theta
+    MSE <- mse
+    
+    t.m <- list("Theta" = THETA, "MSE" = MSE)
+    return(t.m)
+    
+} # end function
+
+# seperate the dataset into training and testing parts with sampling
+ind.1 <- sample(seq_len(nrow(hw1a)), size = floor(0.5 * nrow(hw1a)))
+train.1 <- hw1a[ind.1,]
+rownames(train.1) <- 1:nrow(train.1)
+test.1 <- hw1a[-ind.1,]
+rownames(test.1) <- 1:nrow(test.1)
+
+# test function
+f.tm(6, train.1$X, train.1$Y)
+
+
+# find the d that makes the MSE the least in the training data
+d <- 0:40
+mse <- rep(NA , times = length(d))
+for(i in 1:length(d)){ #for loop
+  
+  mse[i] <- f.tm(d[i],train.1$X, train.1$Y)$MSE
+  
+} #end loop
+
+d.mse.training <- data.frame("d" = d, "MSE" = mse)
+rm(d,mse)
+d.mse.training
+
+#find the d where MSE achieve the minimum value
+d.mse.training[d.mse.training$MSE == min(d.mse.training$MSE),]
+d.mse.training[d.mse.training$MSE == min(d.mse.training$MSE),]$d # D = 7
+d.mse.training[d.mse.training$MSE == min(d.mse.training$MSE),]$MSE # MSE = 2.508389e+21
+
+
+# generate the plot of error vs. degree
+plot(d.mse.training$d, d.mse.training$MSE, las =T, main = "Error vs. Degree", xlab = "Degree", 
+     ylab = "Error", type = "l", col = "cadetblue", 
+     cex = 2.0)
+# Degree = 7 makes the MSE the minimum
+f.tm(7,train.1$X, train.1$Y)[1]
+
+
+# function for computing the MSE in testing data with the Theta generated from training data
+f.tm.te <- function(d, f, x, y){ # f is the function f.tm 
+  
+  xm <- matrix(rep(NA, length(x)*(d+1)), nrow = length(x), ncol = d+1)
+  theta <- unlist(f.tm(d,train.1$X, train.1$Y)$Theta)
+  mse <- 0
+  
+  for(k in 1:(d+1)){
+    
+    #add each vector with different d exponential to the matrix xm
+    xm[,k] <- x^(k-1) 
+    
+  }#end for loop
+  
+  for(i in 1: length(x)){
+    
+    mse <- mse + (y[i] - xm[i,] %*% theta)^2
+  }# end for loop
+  
+  mse <- mse/length(x)
+  
+  return(mse)
+}# end function
+
+# test function
+f.tm.te(3,f.tm,test.1$X, test.1$Y)
+
+
+which.min(sapply(0:40, f.tm.te, f.tm, test.1$X, test.1$Y))
+
+######Plot of error vs. degree
+plot(d.mse.training$d, d.mse.training$MSE, las =T, main = "Error vs. Degree", xlab = "Degree", 
+     ylab = "Error", type = "l", col = "cadetblue", 
+     cex = 2.0)
+points(0:40, sapply(0:40, f.tm.te, f.tm, test.1$X, test.1$Y), las = T, main = "Error vs. Degree", xlab = "Degree", 
+       ylab = "Error", type = "l", col = "firebrick")
+legend("topright", legend = c("Training Error", "Testing Error"), lwd =3, col = c("cadetblue", "firebrick"), cex = 1)
+
+dev.off()
+# when degree = 7, the minimal training error is 2.508389e+21
+# when degree = 8, the minimal testing error is 2.085071e+21
+
+########Plot of Testing and Training
+
+plot(train.1$X, train.1$Y, las = T, main = "Testing", xlab = "X of training data", ylab = "Estimtate.Y",
+     col = "cadetblue", pch =19)
