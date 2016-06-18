@@ -1,3 +1,9 @@
+############################################################################
+# Yuxiao Luo  E-mail:yluo52@fordham.edu
+# 
+############################################################################
+
+require(MASS) # MASS pacakage is needed for inverse of matri
 f.tm <- function(d, x, y){ # function of x,y,d
   
   
