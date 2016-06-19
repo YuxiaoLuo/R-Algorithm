@@ -1,0 +1,88 @@
+########################################################################################
+#  Author: Yuxiao Luo                           Email:yluo52@fordham.edu
+#  Implement logistic regression(two class classification) using gradient descent
+#  Dataset: hw1c
+########################################################################################
+
+hw1c <- read.table("hw1c.csv", header = T, stringsAsFactors = F, sep = ",")
+
+# denote the function f(x;theta) = 1/(1+exp(-theta^T * x))
+
+fx <- function(x, theta)return(1/(1 + exp(-x %*% theta)))
+
+# compute the gradient 
+gradient <- function(x, y, theta){
+  
+  y.es <- fx(x, theta) - y
+  gradi <- t(x) %*% y.es / length(y)
+  
+  return(gradi)
+}#end function gradient
+
+# compute the loss function
+loss <- function(x, y, theta){
+  fir <- - t(y) %*% x %*% theta 
+  sec <- log( 1 + exp(x %*% theta))
+  sec <- sum(sec)
+  loss.f <- (fir + sec) / length(y)
+  return(loss.f)
+}#loss function
+
+# function for gradient descent
+GraD <- function(x, y, tol, step){
+  
+  max.iter=10000
+  loss.q <- NULL
+  iter.cnt <- 0
+  var.cnt <- ncol(x)
+  theta.1<- as.matrix(rep(0, ncol(x)))
+  theta.2 <- theta.1 + tol * 2
+  
+  while(norm(theta.1 - theta.2, "2") > tol && iter.cnt < max.iter)
+    {
+    theta.2 <- theta.1
+    # update estimated theta
+    theta.1 <- theta.1 - gradient(x, y, theta.1) * step
+    iter.cnt <-  iter.cnt + 1
+    # loss function
+    loss.q <- c(loss.q, loss(x, y, theta.1))    
+  }# end while loop
+  return(list("loss.q" = loss.q, "opt.theta" = theta.1))
+}# end function
+
+
+# split data into two sets for training and testing 
+
+ind.4 <- sample(seq_len(nrow(hw1c)), size = floor(0.5 * nrow(hw1c))) # random sampling half of the data
+train.4 <- hw1c[ind.4,]
+rownames(train.4) <- 1:nrow(train.4)
+test.4 <- hw1c[-ind.4,]
+rownames(test.4) <- 1:nrow(test.4)
+train.4[,-4]
+
+# split data in another way
+X <- as.matrix(hw1c[-4])
+Y <- as.matrix(hw1c[4])
+
+
+
+# GraD for optimized theta and loss function 
+GraD(as.matrix(train.4[,-4]), as.matrix(train.4[,4]), tol = 0.01, step = 0.5)$opt.theta
+GraD(as.matrix(train.4[,-4]), as.matrix(train.4[,4]), tol = 0.01, step = 0.05)$opt.theta
+
+
+# Step size = 0.1, tolerance = 0.005 and generate the plot
+#Theta <- GraD(as.matrix(train.4[,-4]), as.matrix(train.4[,4]), tol = 0.01, step = 0.5)$opt.theta
+#Theta
+Theta <- GraD(X[ind.4,], Y[ind.4,], tol = 0.01, step = 0.5)$opt.theta
+Theta
+
+plot(hw1c[,1], hw1c[,2], las =T, main = "Linear Decision Boundary", xlab = "X1", ylab = "X2", col = "cadetblue", pch =19,
+     xlim = c(0,1), ylim = c(-1.5, 1.5))
+abline(-Theta[3]/Theta[2], -Theta[1]/Theta[2], col = "red")
+
+plot(1:length(GraD(as.matrix(train.4[,-4]), as.matrix(train.4[,4]), tol = 0.01, step = 0.5)$loss.q), 
+     unlist(GraD(as.matrix(train.4[,-4]), as.matrix(train.4[,4]), tol = 0.01, step = 0.5)$loss.q),
+     main = "Rate of Convergence", xlab = "Iterations", ylab = "", ylim = c(0, 1), col = "yellow", pch = 19 )
+
+dev.off()
