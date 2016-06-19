@@ -1,0 +1,174 @@
+################################################################################
+# Author: Yuxiao Luo                          Email: yluo52@fordham.edu
+# Em Algorithm for a mixture of Bernoullis    
+################################################################################
+
+require(ppls) # load ppls package
+
+# creat a simple dataset
+data <- c(-0.39,0.12, 0.94, 1.67, 1.79, 2.44, 3.72, 4.28, 4.92, 5.53,
+       0.06, 0.33, 1.01, 2.58, 1.80, 4.01, 3.62, 5.89, 6.01, 1.46) 
+       
+# Bernoulli function 
+Bernoulli <- function(x, M){
+  n <- length(x)
+  x <- as.vector(x)
+  p <- 1
+  for(i in 1:n){
+    p <- p * M[i]^x[i]*(1-M[i])^(1-x[i])
+  }
+  return(p)
+}
+
+
+## E-Step
+EstepB <- function(Y,N,R,P,Theta,p){
+  W <- matrix(rep(NA, N*R), N, R)
+  
+  for(i in 1:N){
+    sum <- 0
+    for(r in 1:R){
+      sum <- sum + p[r]*Bernoulli(Y[i,],Theta[r,])
+    }
+    
+    for(r in 1:R){
+      W[i,r] <- p[r]*Bernoulli(Y[i,],Theta[r,])/sum
+    }
+  }
+  return(W)
+}
+
+## M-Step
+MstepB <- function(Y,N,R,P,Theta,p,W){
+  # Calculate p
+  for(r in 1:R){
+    sum <- 0
+    for(i in 1:N){
+      sum <- sum + W[i,r]
+    }
+    p[r] <- sum/N
+  }
+  
+  # Calculate Theta
+  for(r in 1:R){
+    for(j in 1:P){
+      sum1 <- 0
+      sum2 <- 0
+      for(i in 1:N){
+        sum1 <- sum1 + W[i,r]*Y[i,j]
+        sum2 <- sum2 + W[i,r]
+      }
+      Theta[r,j] <- sum1/sum2
+    }
+  }
+  
+  return(list("p"=p, "Theta"=Theta))
+}
+
+
+
+## Log-Likelihood Function
+ll <- function(Y,N,R,P,Theta,p,W){
+  Sum1 <- 0
+  for(i in 1:N){
+    sum1 <- 0
+    for(r in 1:R){
+      sum2 <- 0
+      for(j in 1:P){
+        sum2 <- sum2 + Y[i,j]*log(Theta[r,j]) + (1-Y[i,j])*log(1-Theta[r,j])
+      }
+      sum1 <- sum1 + W[i,r]*sum2
+    }
+    Sum1 <- Sum1 + sum1
+  }
+  
+  Sum2 <- 0
+  for(i in 1:N){
+    sum3 <- 0
+    for(r in 1:R){
+      sum3 <- sum3 + W[i,r]*log(p[r])
+    }
+    Sum2 <- Sum2 + sum3
+  }
+  
+  Sum <- Sum1 + Sum2
+  return(Sum)
+}
+
+
+
+
+## EM Algorithm
+EM_B <- function(Y, R, MAXITER){
+  P <- ncol(Y)
+  N <- nrow(Y)
+  p <- rep(1/R,R)
+  Theta <- matrix(runif(R*P, 0.25,0.75), R, P)
+  for(i in 1:P){
+    Theta[,i] <- normalize.vector(Theta[,i])
+  }
+  
+  ll_old <- 1
+  ll_new <- 0
+  iter <- 0
+  while((abs(ll_old-ll_new)>10^(-6)) & iter <= MAXITER){
+    W <- EstepB(Y,N,R,P,Theta,p)
+    rst <- MstepB(Y,N,R,P,Theta,p,W)
+    ll_old <- ll_new
+    ll_new <- ll(Y,N,R,P,Theta,p,W)
+    iter <- iter + 1
+  }
+  prob <- rst$p
+  theta <- rst$Theta
+  return(list("Probability"=prob, "Theta"=theta, "ll"=ll_new))
+}
+
+# input data and cross valiadation
+data <- read.table("2a.csv", header = F, sep = ",")
+id <- sample(nrow(data), nrow(data)/2)
+
+training <- data[id,]
+testing <- data[-id,]
+
+EM_B(training, 2, 10)
+luo <- EM_B(training,3, 10)
+luo.4 <- EM_B(training,4, 10)
+luo.5 <- EM_B(training, 5, 10)
+luo.6 <- EM_B(training, 6, 10)
+luo.6
+mean(luo.6$Probability)
+
+likelihood <- rep(NA,5)
+for(i in 2:6){
+  likelihood[i-1] <- EM_B(training, i, 10)$ll
+}
+
+plot(x=c(2:6), y=likelihood/100, type="o", pch=20,
+     xlab="C Value", ylab="Log-Likelihood",
+     main="Log-likelihood under Different C's")
+
+# Testing set
+yu.2 <- EM_B(testing, 2, 10)
+yu.3 <- EM_B(testing, 3, 10)
+yu.4 <- EM_B(testing, 4, 10)
+yu.5 <- EM_B(testing, 5, 10)
+yu.6 <- EM_B(testing, 6,10)
+yu.6
+mean(yu.6$Probability)
+
+likelihood2 <- rep(NA, 6)
+for(t in 2:5){
+  likelihood2[t-1] <- EM_B(testing.X, t, 20)$ll
+}
+
+plot(x=c(2:6), y=likelihood2/100, type="o", pch=20,
+     xlab="C values", ylab="Log-Likelihood",
+     main="Log-likelihood under Different C's")
+
+likelihood2
+
+C <- EM_B(X, 4, 20)
+
+m <- C$Theta
+m <- as.matrix(m)
+t(m)
