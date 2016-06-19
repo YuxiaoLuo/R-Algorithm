@@ -4,7 +4,7 @@ Hello and thank you for downloading this dataset.
 
 Except those stated below, the original source of the dataset is http://www.cs.columbia.edu/~amoretti/7847.html.
 
-If you have any problem regarding the dataset, please contact yluo52@fordham.edu / yuxiaoluo@hotmail.com
+If you have any problem regarding the dataset, please contact yluo52@fordham.edu / rollrainshell@gmail.com
 
 Code of reading the csv are provided in the code file. 
 
