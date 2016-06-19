@@ -1,6 +1,6 @@
 ############################################################################
 # Yuxiao Luo  E-mail:yluo52@fordham.edu
-# 
+# Learning mapping between a vector and a scalar using a polynomial basis
 ############################################################################
 
 require(MASS) # MASS pacakage is needed for inverse of matri
