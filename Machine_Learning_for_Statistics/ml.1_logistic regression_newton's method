@@ -1,0 +1,84 @@
+########################################################################################
+#  Author: Yuxiao Luo                           Email:yluo52@fordham.edu
+#  Implement logistic regression(two class classification) using Newton's Method
+#  Dataset: hw1c
+########################################################################################
+hw1c <- read.table("hw1c.csv", header = T, stringsAsFactors = F, sep = ",")
+
+# denote the function f(x;theta) = 1/(1+exp(-theta^T * x))
+
+fx <- function(x, theta)return(1/(1 + exp(-x %*% theta)))
+
+# compute the gradient 
+gradient <- function(x, y, theta){
+  
+  y.es <- fx(x, theta) - y
+  gradi <- t(x) %*% y.es / length(y)
+  
+  return(gradi)
+}#end function gradient
+
+# compute the loss function
+loss <- function(x, y, theta){
+  fir <- - t(y) %*% x %*% theta 
+  sec <- log( 1 + exp(x %*% theta))
+  sec <- sum(sec)
+  loss.f <- (fir + sec) / length(y)
+  return(loss.f)
+}#loss function
+
+# compute the Hessian 
+hessian <- function(x,y,theta){ 
+  
+  H <- t(x)%*%diag(as.numeric(fx(x,theta)), nrow = length(y))%*%diag(as.numeric(1-fx(x,theta)),nrow = length(y))%*%x
+  return(H)
+} 
+
+
+# Use Newton'method to compute theta and loss function
+
+Newton <- function(x, y, tol){
+  
+  max.iter=2500
+  loss.q <- NULL
+  iter.cnt <- 0
+  var.cnt <- ncol(x)
+  theta.1<- as.matrix(rep(0, ncol(x)))
+  theta.2 <- theta.1 + tol * 2
+  
+  while(norm(theta.1 - theta.2, "2") > tol && iter.cnt < max.iter)
+  {
+    theta.2 <- theta.1
+    # update estimated theta
+    theta.1 <- theta.1 - ginv(hessian(x,y,theta.1))%*%gradient(x,y,theta.1)
+    iter.cnt <-  iter.cnt + 1
+    # loss function
+    loss.q <- c(loss.q, loss(x, y, theta.1))    
+  }
+  return(list("loss.q" = loss.q, "opt.theta" = theta.1))
+}
+
+
+# split data into two sets for training and testing 
+
+ind.4 <- sample(seq_len(nrow(hw1c)), size = floor(0.5 * nrow(hw1c)))
+train.4 <- hw1c[ind.4,]
+rownames(train.4) <- 1:nrow(train.4)
+test.4 <- hw1c[-ind.4,]
+rownames(test.4) <- 1:nrow(test.4)
+train.4[,4]
+
+# test the function 
+Newton(as.matrix(train.4[,-4]), as.matrix(train.4[,4]), tol = 0.005)
+Theta <- Newton(as.matrix(train.4[,-4]), as.matrix(train.4[,4]), tol = 0.01)$opt.theta
+Theta
+
+# plot the rate of convergence 
+plot(1:length((Newton(as.matrix(train.4[,-4]), as.matrix(train.4[,4]), tol = 0.01)$loss.q)),
+     unlist(Newton(as.matrix(train.4[,-4]), as.matrix(train.4[,4]), tol = 0.01)$loss.q), las = T, main = "Rate of Convergence",
+     col = "cadetblue", xlim = c(0,2000), xlab = "Iterations", ylab ="")
+
+# plot of the decision boundary 
+plot(hw1c[,1], hw1c[,2], las =T, main = "Linear Decision Boundary", xlab = "X1", ylab = "X2", col = "cadetblue", pch =19,
+     xlim = c(0,1), ylim = c(-1.5, 1.5))
+abline(-Theta[3]/Theta[2], -Theta[1]/Theta[2], col = "red")
