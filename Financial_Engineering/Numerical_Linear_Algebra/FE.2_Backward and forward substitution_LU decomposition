@@ -1,0 +1,170 @@
+####################################################################
+#  Yuxiao Luo                           yuxiaoluo@hotmail.com
+#  
+#  The functions included are listed:
+#  backward substitution for upper triangular bidiagonal matrices
+#  Upper substitution for lower trianguler matrices
+#  LU decomposition with row pivoting
+#  Linear solver using LU decomposition with row pivoting
+####################################################################
+
+# backward substitution 
+backward_sub <- function(U,b){ 
+  # U = nonsingular upper triangular matrix of size n
+  # b = column vector of size n
+  n <- ncol(U)
+  x <- matrix(rep(NA, times = n), nrow = n)
+  x[n] <- b[n]/U[n,n] 
+  
+  for(j in (n-1):1){
+    
+    sum = 0
+    
+    for(k in (j+1):n){
+      
+      sum = sum + U[j,k]*x[k]
+      
+    }
+    
+    x[j] = (b[j] - sum)/U[j,j]
+  }
+  return(x)
+} 
+
+# test the backward substitution function 
+U <- matrix(c(2,-1,0,0,0,-1,1,0,0,0,1,-1,0,0,0,-1), nrow = 4, ncol =4, byrow = T)
+U
+b <- matrix(c(2,1,-1,0), ncol =1, byrow = F)
+b
+backward_sub(U,b)
+solve(U,b)
+U %*% solve(U,b) == U %*% backward_sub(U,b)
+
+###########################################
+# backward substitution for upper triangular bidiagonal matrices
+back_sub_bidiag <- function(U,b){
+  
+  n <- ncol(U)
+  x<- rep(NA, times = n)
+  x[n] <- b[n]/U[n,n]
+  
+  for(j in (n-1):1){
+    
+    x[j] <- (b[j] - U[j,j+1]*x[j+1])/U[j,j]
+    
+  }
+    return(x)
+}
+
+back_sub_bidiag(U,b)
+
+############################################
+# forward substitution for lower triangular 
+forward_sub <- function(L,b){
+  
+   # L = nonsingular lower triangular matrix of size n
+   # b = column vector of size n
+  n <- ncol(L)
+  x <- matrix(rep(NA, times = n), nrow = n)
+  x[1] <- b[1]/L[1,1]
+  
+  for(j in 2:n){
+    
+    sum = 0
+    
+    for(k in 1:(j-1)){
+      sum <- sum + L[j,k]*x[k]
+    }
+    
+    x[j] <- (b[j]-sum)/L[j,j]
+  }
+  x <- matrix(x, ncol = 1, byrow = F)
+  return(x)
+}
+
+L <- matrix(c(100, 0,0,0,1.5,101.5,0,0,2.5,2.5,102.5,0,1.5,1.5,1.5,101.5), nrow = 4, ncol=4, byrow = T)
+b <- matrix(c(98.5,101,102,103.5), ncol = 1, byrow = F)
+b
+forward_sub(L,b)
+solve(L,b)
+##########################################################
+# function for LU decomposition with row pivoting
+lu_row_pivoting <- function(A){
+  # A = nonsingular square matrix of size n
+  n <- ncol(A) 
+  P <- diag(x= 1, nrow = n, ncol = n) # initialize identity matrix P, L
+  L <- diag(x = 1, nrow = n, ncol = n)
+  U <- matrix(0, nrow = n, ncol =n)
+  
+  for(i in 1:(n-1)){
+    # i_max, index of largest entry in absolute value from vector A(i:n,i)
+    i_max <- which.max(abs(A[i:n,i]))
+    # switch rows i and i_max of A
+    vv <- A[i,i:n]
+    A[i,i:n] <- A[i_max, i:n]
+    A[i_max, i:n] <- vv 
+    # update the matrix P
+    cc <- P[i]
+    P[i] <- P[i_max]
+    P[i_max] <- cc
+    
+    if(i>1){
+      # switch rows i and i_max of L
+      ww <- L[i,1:(i-1)]
+      L[i,1:(i-1)] <- L[i_max, 1:(i-1)]
+      L[i_max,1:(i-1)] <- ww
+      
+    }#end if 
+    
+    for(j in i:n){
+      # compute column i of L
+      L[j,i] <- A[j,i]/A[i,i]
+      U[i,j] <- A[i,j]
+    }# end for loop
+    for(j in (i+1):n){
+      for(k in (i+1):n){
+        
+        A[j,k] <- A[j,k] - L[j,i]*U[i,k]
+        
+      }#end for loop
+    }#end for loop
+  }#end for loop
+  rm(vv,ww,cc)
+  PLU <- list("P" = P, "L" = L, "U" = U)
+  return(PLU)
+}
+
+A <- matrix(c(1,101,0,0,2,2,102,0,5,0,105,0,2.5,2.5,2.5,102.5),nrow = 4, ncol =4, byrow = T)
+A
+# test the function 
+result <- lu_row_pivoting(A)
+result
+lu_row_pivoting(U)
+
+# check PA = LU
+matrix(unlist(result[2]), nrow = nrow(A), byrow = F) %*% matrix(unlist(result[3]), nrow = nrow(A), byrow = F)
+matrix(unlist(result[1]), nrow = nrow(A), byrow = F) %*% A
+
+###########################################################
+# Linear solver using LU decomposition with row pivoting
+
+linear_solve_lu_row_pivoting <- function(A,b){
+  
+  n<- nrow(A)
+  P <- matrix(unlist(lu_row_pivoting(A)[1]), nrow = n, byrow =F)
+  L <- matrix(unlist(lu_row_pivoting(A)[2]), nrow = n, byrow = F)
+  U <- matrix(unlist(lu_row_pivoting(A)[3]), nrow = n, byrow = F)
+  Pb <- P%*%b
+  
+  y <- forward_sub(L,Pb)
+  
+  x <- backward_sub(U,y)
+  
+  return(x)
+}
+
+b <- matrix(c(100.8,103.5,107.5,110.5), ncol = 1, byrow = F)
+
+A <- matrix(c(1.5, 101.5, 0,0, 2,2, 102, 0, 0, 6, 0, 106, 2.5, 2.5, 2.5, 102.5), nrow = 4, ncol =4, byrow = T)
+B <- matrix(c(101.3, 102.95, 107.35, 105.45), ncol =1, byrow = F)
+linear_solve_lu_row_pivoting(A,B)
