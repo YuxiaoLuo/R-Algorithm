@@ -1,0 +1,97 @@
+####################################################################
+#  Yuxiao Luo                           yuxiaoluo@hotmail.com
+#  Times series data analysis, return computation
+#  Covariance matrix and corrlation matrix
+#  Data: data-DJ30-cov_corr_july2011-june2013_orig
+####################################################################
+
+require(xlsx)
+f <- function(x) return(-x^2-0.06*x+0.9)
+polyroot(c(0.9, -0.06, -1))
+
+#construct a sd matrix
+x <- data.frame( "1" = c(0.25, 1, -0.5, 0, -1), "2" = c(-0.5, -1, -0.25, 0.5, 0.75), "3" = c(1.5, 1.25, 2, 0.75, 1.50))
+x
+apply(x[,c("X1", "X2","X3")], 2,var)
+
+cov(x$X2, x$X3)
+
+#####return computation
+
+w <- read.xlsx("data-DJ30-cov_corr_july2011-june2013_orig.xlsx", 1) # weekly returns
+m <- read.xlsx("data-DJ30-cov_corr_july2011-june2013_orig.xlsx", 2) # monthly returns
+
+# change the order of times series data from old to new
+w <- w[nrow(w):1,]
+rownames(w) <- 1:nrow(w)
+head(w)
+
+m <- m[nrow(m):1,]
+rownames(m) <- 1:nrow(m)
+head(m)
+
+######################################################## the log return function input: data frame , output: data frame
+l.return <- function(x){ # x is a data frame
+  
+  lr <- x[,2:ncol(x)] # remove the date column in data frame
+  lr[1,] <-NA
+  
+  for(i in 2:ncol(x)){ # first for loop for different columns in data frame x
+    
+    vector <- x[,i]
+    
+    index <- 0
+    l.r.vector <- rep(NA, times = nrow(x)) # vector for storing the value of log returns of each column
+    
+    for(j in 2:nrow(x)){ # second for loop for computing the log returns of each column 
+      
+      l.r.vector[j] <- log(vector[j]) - log(vector[j-1])
+      index <- index +1
+    } # end for loop
+    
+    lr[,i-1] <- l.r.vector # input the each column of data frame x with the computed log return
+  } # end second for loop
+  
+  return(lr)
+}
+
+w.log <- l.return(w) # output the log returns of weekly data
+write.xlsx(w.log, "c:/Users/Yuxiao Luo/Documents/w_log.xlsx") # output a table 
+w.log <- w.log[-1,]
+rownames(w.log) <- 1:nrow(w.log)
+  
+m.log <- l.return(m) # output the log returns of monthly data
+m.log
+write.xlsx(m.log, "c:/Users/Yuxiao Luo/Documents/m_log.xlsx")
+m.log <- m.log[-1,]
+rownames(m.log) <- 1:nrow(m.log)
+
+#####################################################
+
+cov(w.log)
+write.xlsx(cov(w.log), "c:/Users/Yuxiao Luo/Documents/covmatrixweekly.xlsx")
+cor(w.log)
+write.xlsx(cor(w.log), "c:/Users/Yuxiao Luo/Documents/corrmatrixweekly.xlsx")
+
+cov(m.log)
+write.xlsx(cov(m.log), "c:/Users/Yuxiao Luo/Documents/covmatrixmonthly.xlsx")
+cor(m.log)
+write.xlsx(cor(m.log), "c:/Users/Yuxiao Luo/Documents/corrmatrixmonthly.xlsx")
+
+
+x <- matrix(c(1,2,3), ncol =1)
+y <- matrix(c(1,-1,0,-1,2,-2,0,-2,3), nrow = 3, ncol =3)
+t(x)%*%y%*%x
+
+# compute z
+z1 <- ((0.01565092-0.01201202)*4-(0.01201202-0.0075)*6)*6
+z2 <- ((0.01981524-0.01565092)*2 - (0.01565092-0.01201202)*4)*6
+z3 <- ((0.01820559-0.01981524)*3 - (0.01981524-0.01565092)*2)*6
+
+z <-matrix(c(z1,z2,z3),ncol=1)
+M <- matrix(c(5/6 , 1/4 , 0 , 1/4 , 3/2 , 1/2 , 0 , 1/2 , 5/3), nrow = 3, ncol =3)
+solve(M,z)
+
+exp(1)^(-1/48)*(1/sqrt(48*pi))*24
+sqrt(1-0.25^2)
+sqrt(1-(-0.1666667)^2)
