@@ -1,0 +1,133 @@
+####################################################################
+#  Yuxiao Luo                 yluo52@fordham.edu
+#  Linear regression model for predicting sales 
+#####################################################################
+
+x <- read.csv("Sporting.csv", header = T, sep = ",", stringsAsFactors = F)
+dim(x)
+head(x)
+tail(x)
+complete.cases(x) # check NA vlaues in the x data frame
+
+#pdf("hist.pdf", width=12, height=4)
+par(mfrow = c(1,2), mar = c(6,5,4,2)+0.1)
+#histogram for Sales
+hist(x$Sales, las = T, main = "Latest One-month Sales Total", col = "cadetblue", xlab = "Sales($)")
+abline(v = median(range(x$Sales)), col = "firebrick", lty =2, lwd = 2) # add a median line to the histogram
+legend("topright", legend = "skewed\nright", bty = "n")
+
+#histogram for Age
+hist(x$Age, las = T, main = "Median Age of Customer Base", col = "cadetblue", xlab = "Age(Years)")
+abline(v = median(range(x$Age)), col = "firebrick", lty = 2, lwd = 2) # add a median line to the histogram
+legend(27,9, legend = "roughly\nsymmetric", bty = "n")
+
+#dev.off()
+
+#pdf("hist.pdf", width=12, height=4)
+par(mfrow = c(1,2), mar = c(6,5,4,2)+0.1)
+
+#histogram for Growth
+hist(x$Growth, las = T, main ="Annual population growth rate\n of customer base\n the over past 10 years", 
+     col = "cadetblue", xlab = "Growth(%)")
+legend("topright", legend = "outilers", bty = "n")
+arrows(20,8, 22,3, length = 0.25, angle = 30, col = "firebrick")
+text(20,11, labels = "Outlier", col = "firebrick")
+
+histogram for income
+hist(x$Income, las = T, main = "Median Family Income of\n Customer Base", col = "cadetblue", xlab = "Income($)")
+abline(v = median(range(x$Income)), col = "firebrick", lty = 2, lwd =2) # add a median line to the histogram
+legend("topright", legend = "slightly\n skewed right", bty = "n")
+
+#dev.off()
+
+#pdf("hist.pdf", width=12, height=4)
+par(mfrow = c(1,2), mar = c(6,5,4,2)+0.1)
+#histogram for HS
+hist(x$HS, las = T, main = "Percentage of Customer Base\n with a High School Diploma", col = "cadetblue", 
+     xlab = "Customer base with HS Diploma(%)")
+abline(v = median(range(x$HS)), col = "firebrick", lty =2, lwd =2)
+legend(x = 48, y =9.5, legend = "slightly\n skewed left", bty = "n")
+
+#legend for college
+hist(x$College, las = T, main = "Percentage of customer base\n with a college diploma", col = "cadetblue", 
+     xlab = "Customer base with college diploma(%)")
+abline(v = median(range(x$College)), col = "firebrick", lty =2 , lwd =2)
+legend("topright", legend = "skewed\n right", bty = "n")
+
+dev.off()
+
+#generate the table of summary statistics for each variable
+table.x <- summary(x[,c("Sales", "Age", "Growth","Income", "HS", "College")])
+table.x
+table.x <- table.x[-c(2,5),]
+colnames(table.x) <- c("Sales($)", "Age(years)", "Growth(%)", "Income($)", "HS(%)", "College(%)")
+#compute the standard deviation and coerce the value to character type
+round(apply(x[,c("Sales", "Age", "Growth","Income", "HS", "College")], 2, sd), digits =4 )
+Sd <- c("Sd.    :907758.0680", "Sd.    :1.7227", "Sd.   :3.7963", "Sd.    :8890.9711", "Sd.   :7.4622", 
+        "Sd.    :8.1472")
+table.x <- rbind(table.x, Sd) # concatenate the table and vector 
+rm(Sd)
+table.x
+rownames(table.x)
+rownames(table.x) <- c("","","","","") # maket the rownames all the same
+table.x
+
+# compute the sample sample correlation coefficient r and scatterplots
+par( mfrow = c(1,2),mar=c(5, 6, 4, 3)+0.1)
+
+# Sales vs Age
+round(cor(x$Age, x$Sales), digits = 4)  
+plot(x$Age, x$Sales,las = T, main = "Sales vs Age", pch =19, col="#4682B470", xlab = "Ages(Years)", ylab = "")
+mtext("Sales($)", side =2, line =5)
+
+# Sales vs Growth
+round(cor(x$Growth, x$Sales), digits =4)
+plot(x$Growth, x$Sales, las = T, main = "Sales vs Growth", pch =19, col = "#4682B470", xlab = "Growth(%)", ylab ="")
+mtext("Sales($)", side =2, line =5)
+
+# Sales vs Income
+round(cor(x$Income, x$Sales), digits = 4)
+plot(x$Income, x$Sales, las =T, main = "Sales vs Income", pch =19, col = "#4682B470", xlab = "Income($)", 
+     ylab = "")
+mtext("Sales($)", side =2, line =5)
+
+# Sales vs HS
+round(cor(x$HS, x$Sales), digits =4)
+plot(x$HS, x$Sales, las = T, main = "Sales vs HS", pch =19, col = "#4682B470", xlab = "HS(%)", ylab = "")
+mtext("Sales($)", side =2, line =5)
+
+# Sales vs College
+round(cor(x$Sales, x$College), digits = 4)
+plot(x$College, x$Sales, las = T, main = "Sales vs College", pch =19, col = "#4682B470", xlab = "College(%)",
+     ylab = "")
+mtext("Sales($)", side =2, line =5)
+
+dev.off()
+
+#fit a linear regression model
+y <- lm(x$Sales ~ x$HS)
+summary(y) # output the summary
+
+# scatter plot the linear regression 
+par(mar=c(5, 12, 4, 2)+0.1)
+plot(x$HS, x$Sales,las = T, main = "Sales vs HS", pch =19, col = "#4682B470", 
+     xlab = "Percentage of customer base with a high school diploma (%)", ylab = "")
+mtext("Sales ($)", side =2, line =5)
+abline(coef(y), col = "forestgreen", lwd =3) #add the estimated regression line
+
+range(x$HS) # see the range of explanary variable
+
+fitted.values(y) # predict the expected sales
+
+counties <- data.frame("HS" = c(50, 75, 70)) # construct a new data for prediction 
+
+prediction <- predict(y, newdata = counties) # predict the expected sales of three stores
+prediction <- prediction[1:3] # extract the three predicted values
+
+pre <- data.frame("HS" = counties, "Expected.Sales" = prediction) # generate the dataset  
+rm(counties, prediction)
+pre
+
+# compute the 95% prediction interval for the three counties
+pre.int <- predict(y, newdata = counties, interval = "prediction", level = 0.95)
+pre.int
