@@ -1,0 +1,142 @@
+###########################################################################
+#  Yuxiao Luo                           yuxiaoluo@hotmail.com
+#  Efficient Cubic Spline Interpolation, Bond Price and Zero Rate Curve
+###########################################################################
+
+options(digits = 5)
+t <- c(7/12, 12/12, 17/12, 22/12) # time 
+disc_F <- c(0.9895, 0.9755, 0.9625, 0.9480) # discount factor
+# Zero Rate given time and discount factor
+zero_rate <- function(t, disc_F){
+  
+  n <- length(t)
+  zero_rate <- rep(NA, times = n)
+  for( i in 1:n){
+    zero_rate[i] <- -log(disc_F[i])/t[i]
+  }
+  return(zero_rate)
+}
+
+zero_rate(t, disc_F)
+
+#### Efficient cubic spline interpolation
+# input: x: interpolation nodes; v: interpolation values
+
+cubic <- function(x,v){
+  
+  x <- as.matrix(x)  
+  v <- as.matrix(v)
+  
+  n <- nrow(x)   
+  
+  # compute z in linear system
+  z <- rep(NA, (n-2))
+  for(i in 2:(n-1)){
+    z[i-1] <- 6*((v[i+1]-v[i])/(x[i+1]-x[i])-(v[i]-v[i-1])/(x[i]-x[i-1]))
+  }
+  print(z)
+  
+  M <- matrix(rep(0, (n-2)^2),(n-2),(n-2))
+  for(i in 2:(n-1)){
+    M[i-1,i-1] <- 2*(x[i+1]-x[i-1])
+  }
+  for(i in 2:(n-2)){
+    M[i-1,i] <- x[i+1] - x[i]
+  }
+  for(i in 3:(n-1)){
+    M[i-1,i-2] <- x[i] - x[i-1]
+  }
+  print(M)
+  
+  w <- solve(M,z)
+  w <- c(0,w,0)
+  
+  a <- rep(NA,(n-1))
+  b <- rep(NA,(n-1))
+  c <- rep(NA,(n-1))
+  d <- rep(NA,(n-1))
+  
+  for(i in 2:n){
+    c[i-1] <- (w[i-1]*x[i]-w[i]*x[i-1])/(2*(x[i]-x[i-1]))
+    d[i-1] <- (w[i]-w[i-1])/(6*(x[i]-x[i-1]))
+  }
+  
+  q <- rep(NA,(n-1))
+  r <- rep(NA,(n-1))
+  for(i in 2:(n+1)){
+    q[i-1] <- v[i-1] - c[i-1]*x[i-1]^2 - d[i-1]*x[i-1]^3
+    r[i-1] <- v[i] - c[i-1]*x[i]^2 - d[i-1]*x[i]^3
+  }
+  
+  for(i in 2:n){
+    a[i-1] <- (q[i-1]*x[i]-r[i-1]*x[i-1])/(x[i]-x[i-1])
+    b[i-1] <- (r[i-1]-q[i-1])/(x[i]-x[i-1])
+  }
+  
+  result <- data.frame("a"=a, "b"=b, "c"=c, "d"=d)
+  return(result)
+}
+
+options(digits = 6)
+zrate <- zero_rate( t, disc_F) # compute zero rate 
+ans <- cubic(c(0,t), c(0.02, zrate)) # efficient cubic interpolation
+ans
+
+bond <- function(t,cf,x){
+  # t = time flow
+  # cf = cash flow
+  # x = times in cubic function
+  n <- nrow(as.matrix(t))
+  r <- rep(NA,n) # r: zero rate calculated through cubic interpolation formula
+  
+  for(i in 1:n){
+    if(t[i]>=x[1] & t[i]<x[2]){
+      r[i] <- ans[1,1] + ans[1,2]*t[i] + ans[1,3]*t[i]^2 + ans[1,4]*t[i]^3
+    }
+    if(t[i]>=x[2] & t[i]<x[3]){
+      r[i] <- ans[2,1] + ans[2,2]*t[i] + ans[2,3]*t[i]^2 + ans[2,4]*t[i]^3
+    }
+    if(t[i]>=x[3] & t[i]<x[4]){
+      r[i] <- ans[3,1] + ans[3,2]*t[i] + ans[3,3]*t[i]^2 + ans[3,4]*t[i]^3
+    }
+    if(t[i]>=x[4] & t[i]<=x[5]){
+      r[i] <- ans[4,1] + ans[4,2]*t[i] + ans[4,3]*t[i]^2 + ans[4,4]*t[i]^3
+    }
+  }
+  print(r) # print out the zero rate
+  
+  dis <- rep(NA,n)
+  # compute discount factor
+  for(i in 1:n){
+    dis[i] <- exp(-r[i]*t[i])
+  } 
+  
+  # value: summation of the present of all cash flows
+  b <- 0
+  for(i in 1:n){
+    b <- b + cf[i]*dis[i]
+  }
+  return(b)
+}
+options( digits = 9)
+bond(c(1/12,7/12,13/12,19/12) ,cf=c(rep(3.5,3),103.5),x=c(0,7/12,12/12,17/12,22/12))
+
+# plot the zero rate curve
+
+x<- c(0,2/12,5/12,11/12,15/12)
+v <- c(0.0075,0.012012016,0.015650921,0.019815241,0.01820559)
+
+a <- cubic(x,v)$a
+b <- cubic(x,v)$b
+c <- cubic(x,v)$c
+d <- cubic(x,v)$d
+
+zr_curve <- function(x){
+  ifelse(x>=0 & x<=2/12, a[1]+b[1]*x+c[1]*x*x+d[1]*x*x*x,ifelse(x>2/12 & x<=5/12,a[2]+b[2]*x+c[2]*x*x+d[2]*x*x*x,ifelse(x>5/12 & x<=11/12,a[3]+b[3]*x+c[3]*x*x+d[3]*x*x*x,ifelse(x>11/12, a[4]+b[4]*x+c[4]*x*x+d[4]*x*x*x,0.01))))
+}
+
+curve(zr_curve(x),xlim=c(0,1.25),main="zero rate curve",xlab="time",ylab="zero rate")
+points(x=x,y=v,pch=20)
+
+
+
