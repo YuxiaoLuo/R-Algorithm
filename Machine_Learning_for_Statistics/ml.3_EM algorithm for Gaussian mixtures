@@ -1,0 +1,117 @@
+################################################################################
+# Author: Yuxiao Luo                          Email: yluo52@fordham.edu
+# EM algorithm for Gaussian mixtures     
+################################################################################
+
+# E step
+EstepG <- function(N,K,X,p){
+  W <- matrix(rep(NA, N*K), N, K)
+  for(i in 1:N){
+    sum <- 0
+    for(k in 1:K){
+      sum <- sum + norm(X[i], p[K+k], p[2*K+k])*p[k]
+    }
+    for(k in 1:K){
+      W[i,k] <- norm(X[i], p[K+k], p[2*K+k])*p[k]/sum
+    }
+  }
+  return(W)
+}# end function
+
+# M step
+MstepG <- function(N,K,X,p,W){
+  NK <- rep(0,K)
+  for(k in 1:K){
+    for(i in 1:N){
+      NK[k] <- NK[k] + W[i,k]
+    }
+    p[k] <- NK[k]/N
+  }
+  
+  # Mu
+  for(k in 1:K){
+    sum_wx <- 0
+    for(i in 1:N){
+      sum_wx <- sum_wx + W[i,k]*X[i]
+    }
+    p[K+k] <- sum_wx/NK[k]
+  }
+  
+  # Sigma
+  for(k in 1:K){
+    sum_wx2 <- 0
+    for(i in 1:N){
+      sum_wx2 <- sum_wx2 + W[i,k]*(X[i]-p[K+k])^2
+    }
+    p[2*K+k] <- sum_wx2/NK[k]
+  }
+  
+  
+  ## log-likelihood
+  sum1 <- 0
+  for(i in 1:N){
+    sum <- 0
+    for(k in 1:K){
+      sum <- sum + p[k]*norm(X[i],p[K+k],p[2*K+k])
+    }
+    sum <- log(sum)
+    sum1 <- sum1 + sum
+  }
+  ll <- sum1
+  
+  return(list(p, ll))
+}
+
+norm <- function(x, mu, v){
+  a <- exp(-(x-mu)^2/(2*v))/sqrt(2*pi*v)
+  return(a)
+}
+
+
+
+## EM Algorithm for Gaussian Mixtures 
+EM_G <- function(X, n){
+  N <- length(X)
+  # initial guess
+  s <- var(X)
+  p <- c(rep(1/n, n), sample(X,n,replace=F), rep(s, n))
+  
+  ll_new <- 1
+  ll_old <- 0
+  i=1
+  ll <- rep(NA,10)
+  while(abs(ll_new-ll_old) > 10^(-8)){
+    W <- EstepG(N,n,X,p)
+    slt <- MstepG(N,n,X,p,W)
+    ll_old <- ll_new
+    ll_new <- slt[[2]]
+    ll[i] <- ll_new
+    i=i+1
+    p <- slt[[1]]
+  }
+  
+  return(list("p"=p,"ll"=ll))
+}
+
+data <- c(-0.39,0.12, 0.94, 1.67, 1.79, 2.44, 3.72, 4.28, 4.92, 5.53,
+       0.06, 0.33, 1.01, 2.58, 1.80, 4.01, 3.62, 5.89, 6.01, 1.46)
+
+res <- EM_G(data, 2)
+p <- res$p
+ll <- res$ll
+mean(p)
+var(p)
+
+
+par(mfrow=c(1,2))
+## Curve
+hist(data, freq=F,main="EM Algorithm for Gaussian Mixtures")
+curve(p[1]*norm(x,p[3],p[5])+p[2]*norm(x,p[4],p[6]), from=min(data), to=max(data), add=T, col="red", lwd = 2)
+
+## Log-likelihood
+plot(x=1:length(ll), y=ll, las = T,type="b", col="yellow", pch=19,
+     xlab="Iterations", ylab="Log-Likelihood",
+     main="Log-Likelihood Plot")
+
+rm(list=ls())
+dev.off()
