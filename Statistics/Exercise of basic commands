@@ -1,0 +1,201 @@
+####################################################################
+#  Yuxiao Luo                           yuxiaoluo@hotmail.com
+#  Exercise of Basic Commands
+####################################################################
+
+x<-c(1,2,NA,4,5,-6,7)
+
+#compute the geometric mean of a numeric vector x
+
+remove <- NA #NA is assigned to inspect the NA value in vector x
+
+x <- x[! x %in% remove] #remove the NA value in vector x  
+  
+n <- length(x)
+pro.x <- 1
+for(i in 1:n){ #loop repeated 7 times
+  
+    if (x[i] >=0){
+    
+    #compute cumulative product 
+    pro.x <- pro.x * x[i]
+    
+    print(i) #print index value in each iteration (for debugging)
+  
+  } else {
+    
+    n <- n -1 #remove the position of the negative value
+    print("Error: this is a non-positive value")
+  
+  }
+  
+} #end of loop 
+
+
+#compute geometric mean
+Geometric_Mean <- pro.x^(1/n)
+Geometric_Mean
+ 
+##################################
+#           Problem2             #
+##################################
+# Solutions are in the word doc
+
+##################################
+#           Problem3             #
+##################################
+###Simulate a game of craps
+
+Win <- c(7,11) # set the condition of win
+Lose <- c(2,3,12) #set the condition of loss
+
+x <- sum(ceiling(6*runif(2))) #simulate the roll of two dice
+print(paste("Initial roll:", x,sep = ""))
+if(x %in% Win){ # set the condition when player wins without dicing again
+
+  print("Bravo!! Rolled 7 or 11 --> You win!!")
+
+ }else{
+   if(x %in% Lose){ # set the condition when players loses without dicing again
+  
+   print("Sorry!! Rolled 2,3 or 12 --> you lose..")
+
+   }else{ #if the number is not in Win or Lose, the player has to dice more
+    
+    y <- 0 #initialize y for new dicing 
+    count <- 1
+    while(! y %in% c(x,7)){
+      
+      y <- sum(ceiling(6*runif(2)))
+      count <- count + 1
+      
+    }
+     if(y == x){
+      print(paste("Roll y_",count," is ", y,". You win!!!!",sep=""))
+     }else{
+      print(paste("Roll y_",count," is ",y,". You lose...",sep=""))
+    }
+   }
+ }
+
+### note: to check if the program works, 
+### print x and y each time you roll
+
+##################################
+#           Problem4             #
+##################################
+###a###
+#find out the longest state name and the length of the states
+
+x <- nchar(state.name) #calculate the size of each character
+n <- length(state.name) #calculate the number of characters 
+s <- 0 #for different longestbnames
+longest <- 0 #for longest names
+y <- rep(1,n)
+
+for(i in 1:n)
+  {
+  if(x[i] > longest){
+    s <- 1
+    longest <- x[i]
+    y[s] <- i
+  }else {
+    if(x[i]==longest){
+      s <- s + 1
+      y[s] <- i
+  }  
+  }#end if/else
+}#end for loop
+for(i in 1:s){
+  print(state.name[y[i]])
+}#end for loop
+print(longest)
+
+###Shorter Version
+state.name[nchar(state.name) == max(nchar(state.name))]
+
+
+###b
+x <- state.name 
+n <- length(state.name) #calculate the lenth of state.name
+y <- substr(x,start=1,stop=3) #extract the New portion of the string
+z <- "New" #set the "New" character
+s <- 0 #for different characters with the name "New" 
+h <- rep(1,n) 
+u <- state.area #for calculating the average area
+
+for (i in 1:n){
+  
+  if(z %in% y[i]){
+    s <- i
+    h[s] <- x[i]
+    print(s)#print index value(for debugging)
+  } #end if
+  
+} #end for loop
+sum <- c(u[29],u[30],u[31],u[32]) #for calculating the mean 
+mean(sum)
+
+##Shorter Version
+mean(state.area[substr(state.name, start=1, stop =3) == "New"])
+###c
+#Use the table to determine how many states are in each region
+
+table(state.region)
+
+
+##################################
+#           Problem5             #
+##################################
+###a
+#calculate the perfect number
+
+num.perfect <- 2 #set the number of perfect number
+count <- 0 #record the number of perfect number
+iter <- 2 
+while(count < num.perfect) #loop repeated unless 2 perfect numbers are found
+{
+  divisor <- 1
+  for(i in 2:(iter-1)){   
+    if(iter%%i==0) {
+      divisor <- c(divisor, i) #concatenate divisor and and is
+    } # end if
+  } #end for loop
+  if(sum(divisor)==iter){ #set the condition that the sum of divisors equals iter
+    print(paste(iter, " is a perfect number", sep=""))
+    count <- count + 1 #add the value to test the number through loop
+  } # end if
+  iter <- iter + 1 #add the value to test the number through loop
+} # end while loop
+
+###b
+
+date()
+num.perfect <- 2 #set the number of perfect number
+count <- 0 #record the number of perfect number
+iter <- 2 
+while(count < num.perfect) #loop repeated unless 2 perfect numbers are found
+{
+  divisor <- 1
+  for(i in 2:(iter-1)){   
+    if(iter%%i==0) {
+      divisor <- c(divisor, i) #concatenate divisor and and is
+    } # end if
+  } #end for loop
+  if(sum(divisor)==iter){ #set the condition that the sum of divisors equals iter
+    print(paste(iter, " is a perfect number", sep=""))
+    count <- count + 1 #add the value to test the number through loop
+  } # end if
+  iter <- iter + 1 #add the value to test the number through loop
+} # end while loop
+date()
+
+###c
+
+x <- 1:4
+y <- c(0,0,0,18)
+plot (x,y,pch = 20,type = "b",
+     xlab = "number of perfect numbers discovered",
+     ylab = "cumulative length of time (in seconds)",
+     main = "Cumulative Run Times to Discover Perfect Numbers",
+     las = T)
