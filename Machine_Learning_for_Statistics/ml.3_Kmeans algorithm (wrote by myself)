@@ -1,0 +1,116 @@
+################################################################################
+# Author: Yuxiao Luo                          Email: yluo52@fordham.edu
+# Kmeans algorithm (self-made)      Dataset: 14cancer.txt
+################################################################################
+
+# read dataset and clean the data
+data.1 <- read.delim("14cancer.txt", header = F, sep = "", stringsAsFactors = F)
+rownames(data.1) <- 1:nrow(data.1) # fix row names and column names
+colnames(data.1) <- 1:ncol(data.1)
+# transpose rows and columns of data
+data.1 <- as.matrix(data.1)
+data.1 <- t(data.1)
+dim(data.1)
+data.1 <- as.data.frame(data.1)
+
+# fix row names for cancer labels
+columnname <- c(1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,3,3,3,3,3,3,3,3,4,4,4,4,4,4,4,4,5,5,5,5,5,5,5,5,5,5,5,5,5,
+        5,5,5,6,6,6,6,6,6,6,6,7,7,7,7,7,7,7,7,8,8,8,8,8,8,8,8,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,10,10,10,10,10,10,
+        10,10,11,11,11,11,11,11,11,11,12,12,12,12,12,12,12,12,13,13,13,13,13,13,13,13,14,
+        14,14,14,14,14,14,14,14,14,14,14,14,14,14,14)
+length(columnname)
+table(columnname)
+
+#colnames(data.1[,1:8])
+# or you colud sample data to a 6830x64 matrix
+#data.1 <- data.1[sample(nrow(data.1),6830),sample(ncol(data.1),64)]
+#rownames(data.1) <- 1:nrow(data.1)
+#colnames(data.1) <- 1:ncol(data.1)
+
+# extract data from data.1 
+my.data <- data.1[,1:1000]
+my.data <- as.matrix(my.data)
+
+# define my.Kmeans
+# parameter: data (matrix) and K,default max iteration is 10,user could change max iteration or define new value
+my.kmeans <- function(data,k,max.iter=10){
+  
+  rows <- nrow(data)
+  cols <- ncol(data) 
+  
+  within <- matrix(0,nrow=k,ncol=1) #within to store the sum of square of distance of points
+  between <- 0 # distance between inner points
+  iter = 0 # iteration
+  
+  # the first column includes the cluster type of each data,the second column is the distance between each data and its cluster
+  indexMatrix <- matrix(0,nrow= rows,ncol=2) 
+  
+  centers <- matrix(0,nrow=k,ncol=cols) #centers matrix store the centers of each cluster
+  randSeveralInteger<-as.vector(sample(1:rows,size=k))# function to generate k random positive integers from rows' number of data
+  
+  # obtain initial centers of each cluster from randomly generated number
+  for(i in 1:k){
+    indexMatrix[randSeveralInteger[i],1]<-i
+    centers[i,]<- data[randSeveralInteger[i],]
+    #centers<-matrix(centers,k,cols)
+  }
+  changed=TRUE # changed value tags whether the data has changed
+  
+  while(changed){ 
+    
+    if(iter>=max.iter)
+      break
+    
+    changed=FALSE
+    previousCluster<-indexMatrix[,1]# previousCluster is the cluster center the data belong before computation and comparation
+    # compute the distance between each data and each center of cluster, and classify the data to the nearest cluster center
+    for(i in 1:rows){ 
+      
+      distance <- rep(NA,k)
+      # classify the data to the nearest cluster center after calculation
+      for(j in 1:k){ 
+        distance[j] <- (sum((data[i,]-centers[j,])^2))^0.5 # compute three distances between a type of data and centers of three clusters
+      }  
+      indexMatrix[i,1]<- which.min(distance) # find out which cluster center is the nearest to the data
+      indexMatrix[i,2]<- distance[which.min(distance)]  # update the distance between the data and its nearest cluster center
+    }
+    # if any cluster of data has changed,set changed to TURE, iterate again
+    
+    if(any(previousCluster!=indexMatrix[,1]) == TRUE)
+      changed=TRUE
+    
+    rm(previousCluster)
+    # recompute the center of cluster
+    for(m in 1:k){
+      clusterMatrix<-data[indexMatrix[,1]==m,] # obtain all the data belong to the Mth cluster center
+      clusterMatrix<-as.matrix(clusterMatrix)
+      
+      if(nrow(clusterMatrix)>0){ # if there exists data belong to the Mth cluster center
+        centers[m,] <- colMeans(clusterMatrix) # update the cluster center of data belong to the Mth cluster center
+      } 
+      else{
+        centers[m,]<-centers[m,] # the Mth cluster center doesn't change
+      }   
+    }# end for
+    iter <- iter+1 # interation
+  }
+  
+  # compute return value of function
+  ss<-function(x) sum(scale(x,scale=FALSE)^2)
+  
+  between<-ss(centers[indexMatrix[,1],]) # differences among clusters ( between sum of square)
+  within<-sapply(split(as.data.frame(data),indexMatrix[,1]),ss) # differences inside clusters ( within sum of square)
+  twithin<-sum(within) #total within-cluster sum of squares
+  total <- ss(data) # total differences among the data
+  
+  # return cluster,tot.withinss,betweenss,iteration
+  result<-list(cluster=indexMatrix[,1],totss = total, tot.withinss = twithin, betweenss = between, means = centers, iter = iter)
+  
+  return(result) 
+}
+
+a <- my.kmeans(my.data, k=3)
+b <- kmeans(my.data, 3)
+b
+a$totss
+b$betweenss
