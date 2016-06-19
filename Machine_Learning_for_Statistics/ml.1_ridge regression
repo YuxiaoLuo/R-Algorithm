@@ -2,6 +2,9 @@
 #   Author: Yuxiao Luo               Email:yluo52@fordham.edu
 #   Ridge Regression                 Data set: hw1b
 ##############################################################################
+
+hw1b <- read.table("hw1b.csv", header = T, stringsAsFactors = F, sep = ",") 
+
 ridge <- function(lambda, x, y){ #regularization constant lambda, matrix x as independent variable, vector y as dependent variable
   
   x <- as.matrix(x)
