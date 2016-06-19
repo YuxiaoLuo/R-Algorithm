@@ -1,0 +1,108 @@
+####################################################################
+#  Yuxiao Luo                 yluo52@fordham.edu
+#  Linear regression model for predicting wine quality
+#####################################################################
+
+x <- read.table("wine.dat", header = T, sep = ",", stringsAsFactors = F )
+
+# find the missing value in LPRICE
+x$VINT[x$LPRICE2 == "."]
+
+x$LPRICE2[x$LPRICE2 == "."] <- NA
+x$DEGREES[x$DEGREES == "."] <- NA
+
+###d
+# coerce the data type to numeric
+x$LPRICE2 <- as.numeric(x$LPRICE2)
+x$DEGREES <- as.numeric(x$DEGREES)
+
+# scatterplot matrix of variables
+# first model
+pairs(x[,c("TIME_SV","LPRICE2")], las = T,pch = 19, col = "firebrick")
+pairs(x[,c("VINT", "LPRICE2")], las = T, pch = 19, col = "firebrick")
+
+# second model
+pairs(x[,c("TIME_SV", "DEGREES", "HRAIN", "WRAIN", "LPRICE2")], las = T, pch = 19, col = "firebrick")
+
+# fit two regression models
+lm.1 <- lm(LPRICE2 ~ VINT, data = x)
+summary(lm.1)
+
+lm.2 <- lm(LPRICE2 ~ TIME_SV + DEGREES + HRAIN + WRAIN, data = x)
+summary(lm.2)
+
+
+### SSE RMSE PRESS and sqrt(MSE)
+
+# find SSE in anova(lm)
+anova.1 <- anova(lm.1)
+SSE.1 <- anova.1$`Sum Sq`[2]
+rm(anova.1)
+
+anova.2 <- anova(lm.2)
+SSE.2 <- anova.2$`Sum Sq`[5]
+rm(anova.2)
+
+# RMSE is the root mean squared error in summary(lm)
+RMSE.1 <- summary(lm.1)$sigma
+RMSE.2 <- summary(lm.2)$sigma
+
+# function for computing PRESS
+Press <- function(s){
+  
+  r <- resid(s)
+  pr <- resid(s)/(1 - lm.influence(s)$hat)
+  RSS <- sum(r^2)
+  press <- sum(pr^2)
+  return(press)
+}
+# https://stevencarlislewalker.wordpress.com/2013/06/18/calculating-the-press-statistic-in-r/
+
+PRESS.1 <- Press(lm.1)
+PRESS.2 <- Press(lm.2)
+
+# MSE(jackknife) = sqrt(PRESS/(n-k+1))
+jack.1 <- sqrt(PRESS.1/27)
+jack.1
+jack.2 <- sqrt(PRESS.2/24)
+jack.2
+
+table <- data.frame("lm.1" = c(SSE.1, RMSE.1, PRESS.1, jack.1), "lm.2" = c(SSE.2, RMSE.2, PRESS.2, jack.2))
+rownames(table) <- c("SSE", "RMSE", "PRESS", "MSE(Jackknife)")
+table
+
+y <- read.table("prestige.dat", header = T, sep = ",", stringsAsFactors = F)
+
+
+# scatterplots with color coding 
+
+col.vector <- rep(NA, times=nrow(y))
+col.vector[y$type==""] <- 3
+col.vector[y$type=="bc"] <- 6
+col.vector[y$type=="prof"] <- 8
+col.vector[y$type == "wc"] <- 0
+col.vector
+pairs(y[,c("education", "income", "women", "census", "prestige")], las=TRUE, pch= col.vector)
+
+y[y$type == "",]
+y[c(34,53,63,67),]
+y <- y[-c(34,53,63,67),]
+rownames(y) <- 1:nrow(y)
+#z1 <- as.numeric(y$type=="")
+#z2 <- as.numeric(y$type=="bc")
+#z3 <- as.numeric(y$type=="prof")
+#z4 <- as.numeric(y$type =="wc")
+#y <- data.frame(y, z1, z2, z3, z4)
+
+lm.1 <- lm( prestige ~ income + education + type, data = y)
+summary(lm.1)
+anova(lm.1)
+
+par(mfrow= c(1,2))
+hist(y$income, las = T, col = "cadetblue", main = "Income", xlab = "Income")
+hist(log(y$income), las = T, col = "cadetblue", main = "Log(income)", xlab = "log(income)")
+
+y$income <- log(y$income)
+
+lm.2 <- lm( prestige ~ income + education + type, data = y )
+summary(lm.2)
