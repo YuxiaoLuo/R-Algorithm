@@ -1,3 +1,7 @@
+####################################################################
+#  Yuxiao Luo                           yuxiaoluo@hotmail.com
+#  Computing the eigenvector of tridiagonal matrix
+####################################################################
 
 # function for computing the eigenvector of tridiagonal matrix
 eigen <- function(x){
