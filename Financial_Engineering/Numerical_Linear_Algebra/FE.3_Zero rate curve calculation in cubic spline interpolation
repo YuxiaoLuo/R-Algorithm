@@ -1,0 +1,152 @@
+####################################################################
+#  Yuxiao Luo                           yuxiaoluo@hotmail.com
+#  Zero rate curve calculation in cubic spline interpolation  
+#  Computing discount factor and the cash flows of the bonds with specific maturity
+####################################################################
+
+require(MASS)
+A <- matrix(c(2,-1,0,1,-2,0,1,-1,4,-1,0,1,4,-3,0,2), nrow =4 ,ncol = 4, byrow = T)
+solve(A)
+
+
+# function for computing zero rate: Disc(t) = exp( -t * r(0,t))
+zerorarte <- function(d, r){
+  
+  n <- length(d)
+  D <- rep(NA, times = n)
+  
+  for(i in 1:n){
+    
+    D[i] <- log(d[i])/(-r[i])
+    
+  }# end for loop
+  
+  return(D)
+}# end function  
+
+# test the function
+zerorarte(c(0.998,0.9935,0.9820,0.9775), c(2/12,5/12,11/12,15/12))
+
+
+# 
+m <- c(0,0,2,0,rep(0,times = 12), 1,rep(0, 15), 1, 1/6, 1/6^2, 1/6^3, rep(0,12),0,1,1/3, 1/12, 0,-1,-1/3, -1/12, rep(0, 8)
+       , 0,0,2,1,0,0, -2, -1, rep(0, 8), rep(0,4), 1,1/6, 1/6^2, 1/6^3, rep(0,8), rep(0,4), 1,5/12, 5/12^2, 5/12^3, rep(0,8),
+        rep(0,4), 0,1,5/6, 25/48, 0,-1, -5/6, -25/48, rep(0,10), 2,5/2, 0,0, -2, -5/2, rep(0,12), 1,5/12, 5^2/12^2, 5^3/12^3,
+       rep(0,12), 1, 11/12, 11^2/12^2, 11^3/12^3, rep(0, 12), 0,1,11/6, 121/48, 0,-1,-11/6, -121/48, rep(0,10),2, 11/2, 0,0,
+       -2, -11/2,rep(0,12), 1, 11/12, 11^2/12^2,  11^3/12^3, rep(0, 12), 1,15/12, 15^2/12^2, 15^3/12^3, rep(0,14),2, 15/2) 
+M <- matrix(m, nrow = 16, ncol =16, byrow = T)
+ 
+b <- c(0, 0.01, 0.012, 0, 0, 0.012, 0.0157, 0, 0, 0.0157, 0.0198, 0, 0, 0.0198, 0.0182, 0)
+b <- matrix(b, nrow = 16, byrow = F)
+solve(M,b)
+
+#### function for calculating zero rate and plotting the zero rate curve
+
+# zero rate curve in each interval
+r1 <- function(t)return(0.01 + 0.012462857*t - 0.016662857*t^3) # 
+r2 <- function(t)return(0.009835450 + 0.015424762*t - 0.017771429*t^2 + 0.01888 * t^3)
+r3 <- function(t)return(0.013852216 - 0.005164524*t + 0.031642857 * t^2 - 0.020651429*t^3)
+r4 <- function(t)return(-0.021425446 + 0.110289643*t - 0.094307143*t^2 + 0.025148571 * t^3)
+
+
+# zero rate curve
+R <- function(t){
+  
+  if(t>= 0 & t <= 2/12){
+    result <- r1(t)
+    return(result)
+  }
+  if(2/12 < t & t <= 5/12){
+    result <- r2(t)
+    return(result)
+  }
+  if(t> 5/12 & t <= 11/12){
+    result <- r3(t)
+    return(result)
+  }
+  if(t > 11/12 & t <= 15/12){
+    result <- r4(t)
+    return(result)
+  }
+}
+###############################################
+R.v1 <- function(t){
+  
+  n <- length(t)
+  zerorate <- rep(NA, n)
+  for(i in 1:n){
+    
+    if(t[i]>= 0 & t[i] <= 2/12){
+     result <- r1(t[i])
+     zerorate[i] <- result
+    }
+    
+    if(2/12 < t[i] & t[i] <= 5/12){
+      result <- r2(t[i])
+      zerorate[i] <- result
+    }
+     if(t[i]> 5/12 & t[i] <= 11/12){
+      result <- r3(t[i])
+      zerorate[i] <- result
+    }
+     if(t[i] > 11/12 & t[i] <= 15/12){
+       result <- r4(t[i])
+       zerorate[i] <- result
+     }
+    
+  }
+  return(zerorate)
+}
+
+R.v1(c(0, 2/12, 5/12, 11/12, 15/12))
+
+# plot the zero rate curve
+curve(R.v1, from = 0, to = 15/12, las = T, main = "Zero Rate Curve", xlab = "time(t)", ylab = "zero rate", lwd = 2) # correct
+curve(R, xlim = c(0,1.25), las = T, main = "Zero Rate Curve", xlab = "time(t)", ylab = "zero rate", lwd = 2) # wrong
+# because the curve is a continuous function in different intervals, the function should input an vector and output an vector
+# make it continuous
+
+
+# plot the curve, but can't get a smooth curve using basic plot
+plot(seq(0,15/12, length.out =  1001), R.v1(seq(0,15/12, length.out =  1001)), las = T, main = "Zero Rate Curve",
+     xlab = "time(t)", ylab = "zero rate", type = "l")
+dev.off()
+
+# use qplot in ggplot2 package
+require(ggplot2)
+qplot(seq(0,15/12, length.out =  100), R.v1(seq(0,15/12, length.out =  100)), geom = "smooth",
+      main = "Zero Rate Curve", xlab = "time(t)", ylab = "zero rate")
+dev.off()
+
+# use loess() for the smooth curve, doesn't work here either
+lo <- loess(R.v1(seq(0,15/12, length.out =  1001))~seq(0,15/12, length.out =  1001))
+plot(seq(0,15/12, length.out =  1001), R.v1(seq(0,15/12, length.out =  1001)), las = T, main = "Zero Rate Curve",
+     xlab = "time(t)", ylab = "zero rate")
+lines(predict(lo), col = "cadetblue", lwd = 2)
+dev.off()
+####################################################
+
+#doesn't work: curve(R, from = 0, to = 15/12, las = T, main = "Zero Rate Curve", xlab = "time(t)", ylab = "zero rate", lwd = 2)
+
+####################################################
+#function for computing disc factor and the cash flows of the bonds with specific maturity
+
+tt <- c(1/12, 4/12, 7/12, 10/12, 13/12)
+
+dis <- function(t){
+  
+  sum <- 0
+  n <- length(t)
+  # computing the cash flows except the last maturity
+  for(i in 1:(n-1)){
+    
+    sum <- sum + 0.625 * exp( -tt[i] * R(tt[i]) )
+    
+  }
+  
+  # compute the summation of the cash flows 
+  sum <- sum + 100.625 * exp( -tt[n] * R(tt[n]) )
+  return(sum)
+}
+
+dis(tt)
