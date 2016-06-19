@@ -1,0 +1,30 @@
+
+# function for computing the eigenvector of tridiagonal matrix
+eigen <- function(x){
+  
+  N <- nrow(x) + 1
+  n <- nrow(x)
+  v <- rep(NA, n)
+  result <- 0
+  for(j in 1:n){
+  
+    for(i in 1:n){
+    
+      v[i] <- sin(i*j*pi/N)
+       
+    }
+    
+    result <- cbind(result,v)
+    v <- rep(NA,n)
+  }
+  result <-  result[,-1]
+  return(result)
+}
+
+B4 <- matrix(c(2,-1, 0,0, -1, 2, -1, 0, 0, -1, 2, -1, 0,0, -1, 2 ), nrow = 4, byrow = 4)
+
+out <- eigen(B4)
+t(out[,1]) %*% out[,4] # test orthogonality
+
+sqrt(sum(out[,1]^2))
+norm(as.matrix(out[,1]))
