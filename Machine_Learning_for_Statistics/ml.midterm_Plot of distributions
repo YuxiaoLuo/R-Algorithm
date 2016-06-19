@@ -1,0 +1,49 @@
+#################################################
+# Midterm of Machine Learning                   #
+# Yuxiao Luo    yluo52@fordham.edu              #
+#################################################
+
+###########################################Problem 2
+# generate the CDF of gamma(5,4)
+plot(pgamma(0:100, shape = 5, scale = 4), main = "CDF of Gamma (5,4)", xlab = "Range", ylab = "CDF",
+     type = "l", col = "firebrick", lwd = 2) 
+abline(v = 20, col = "cadetblue", lty =2 , lwd =2 )
+
+qgamma(0.5, shape =5, scale = 4)
+
+# plot CDF of beta
+
+plot(dbeta(x, 5, 1))
+
+# plot the PDFs of Beta
+par(mfrow = c(2,3))
+curve(dbeta(x, 5, 1), ylab = "PDF", main = "PDF of Beta (5,1)")
+curve(dbeta(x, 5, 2), ylab = "PDF", main = "PDF of Beta (5,2)")
+curve(dbeta(x, 5, 4), ylab = "PDF", main = "PDF of Beta (5,4)")
+curve(dbeta(x, 5, 10), ylab = "PDF", main = "PDF of Beta (5,10)")
+curve(dbeta(x, 5, 20), ylab = "PDF", main = "PDF of Beta (5,20)")
+dev.off()
+
+# plot the CDFs of Beta
+par(mfrow = c(2,3))
+curve(pbeta(x, 5, 1), ylab = "CDF", main = "CDF of Beta (5,1)")
+curve(pbeta(x, 5, 2), ylab = "CDF", main = "CDF of Beta (5,2)")
+curve(pbeta(x, 5, 4), ylab = "CDF", main = "CDF of Beta (5,4)")
+curve(pbeta(x, 5, 10), ylab = "CDF", main = "CDF of Beta (5,10)")
+curve(pbeta(x, 5, 20), ylab = "CDF", main = "CDF of Beta (5,20)")
+
+###################################### plot of problem 1
+rm(list=ls())
+o <- seq(0,1, length = 1000)
+
+#### when x = 1
+par(mfrow = c(1,2))
+plot(o, log(o), type = "l", main = "Likelihood when x = 1", xlab = print(expression(theta)), ylab = "Likelihood" )
+plot(o, log(1-o), type = "l", main = "Likelihood when x = 0", xlab = print(expression(theta)), ylab = "Likelihood" ) # when x =0
+
+
+plot(o, 1/(o*(1-o)), type = "l",main = "Fisher information", xlab = print(expression(theta)), 
+     ylab = "Fisher information" )
+plot(o, -o*log(o)-(1-o)*log(1-o), type = "l", main = "Entropy", xlab = print(expression(theta)), ylab = "Entropy" )
+
+dev.off()
