@@ -1,9 +1,16 @@
 ############################################################################
 # Yuxiao Luo  E-mail:yluo52@fordham.edu
 # Learning mapping between a vector and a scalar using a polynomial basis
+# Data needed are hw1a, hw1b, hw1c
 ############################################################################
 
-require(MASS) # MASS pacakage is needed for inverse of matri
+# upload the data
+hw1a <- read.table("hw1a.csv", header = T, stringsAsFactors = F, sep = ",")
+hw1b <- read.table("hw1b.csv", header = T, stringsAsFactors = F, sep = ",")
+hw1c <- read.table("hw1c.csv", header = T, stringsAsFactors = F, sep = ",")
+
+require(MASS) # MASS pacakage is needed for inverse of matrix
+
 f.tm <- function(d, x, y){ # function of x,y,d
   
   
