@@ -1,0 +1,101 @@
+####################################################################
+#  Yuxiao Luo                           yuxiaoluo@hotmail.com
+#  Percentage/log return and Eigen vector of tridiagonal matrix
+####################################################################
+
+require(xlsx) # for reading xlsx file
+
+x <- read.xlsx("financials2012.xlsx", 1)
+
+# write.xlsx(wp, "c:/Users/Yuxiao Luo/Documents/weekly return.xlsx")
+
+x1 <- c(38,34.8,34.9, 34.7, 35.6, 34.8, 35.6, 35.7, 35.2, 36.6)
+x2 <- c(118.3, 108.7, 106.5, 104.2, 102.6, 100.5, 101.2, 96.8, 98.3, 99.1)
+x3 <- c(16.8, 16, 14.6, 13.5, 14.6, 13.8, 12.5, 11.7, 12.1, 11.9)
+x4 <- c(8.7, 8.3, 8.5, 8.1, 7.6, 7.3, 7.5, 7.1, 7.3, 7.7)
+
+####################### percentage return
+p.return <- function(vector){ # function for computing percentage return 
+  
+  index <- 0 
+  p.r.vector <- rep(NA, times = length(vector)) # set the vector for percentage return
+  
+  for( i in 2:length(vector)){ # for loop
+    
+    p.r.vector[i] <- (vector[i] - vector[i-1])/vector[i-1]
+    
+    index <- index + 1 # index add one at each iteration         
+    
+  } 
+  p.r.vector <- p.r.vector[-1]
+  return(p.r.vector) # output result
+}
+r1 <- p.return(x1)
+r2 <- p.return(x2)
+r3 <- p.return(x3)
+r4 <- p.return(x4)
+r <- data.frame("JPM" = r1, "GS" = r2, "MS"= r3, "BAC" = r4)
+cov(r)
+cor(r)
+r
+########################## the log return function input: data frame , output: data frame
+l.return <- function(data.frame){
+  
+  lr <- x[,2:ncol(x)] # remove the date colum in data frame
+  lr[1,] <-NA
+  
+  for(i in 2:ncol(x)){ # first for loop for different columns in data frame x
+    
+    vector <- x[,i]
+    
+    index <- 0
+    l.r.vector <- rep(NA, times = nrow(x)) # vector for storing the value of log returns of each column
+    
+    for(j in 2:nrow(x)){ # second for loop for computing the log returns of each column 
+      
+      l.r.vector[j] <- log(vector[j]) - log(vector[j-1])
+      index <- index +1
+    } # end for loop
+    
+    lr[,i-1] <- l.r.vector # input the each column of data frame x with the computed log return
+  } # end second for loop
+  
+  return(lr)
+}
+
+lr <- l.return(x)
+lr <- lr[2:nrow(lr),]
+rownames(lr) <- 1:nrow(lr)
+cov(lr)
+round(cov(lr)/10^-6, digits =3) # output the log return with rounded number 
+
+
+######################################## function for computing the eigenvector of tridiagonal matrix
+eigen <- function(x){
+  
+  N <- nrow(x) + 1
+  n <- nrow(x)
+  v <- rep(NA, n)
+  result <- 0
+  for(j in 1:n){
+    
+    for(i in 1:n){
+      
+      v[i] <- sin(i*j*pi/N)
+      
+    }
+    
+    result <- cbind(result,v)
+    v <- rep(NA,n)
+  }
+  result <-  result[,-1]
+  return(result)
+}
+
+B <- matrix(c(2,-1, 0,0, -1, 2, -1, 0, 0, -1, 2, -1, 0,0, -1, 2 ), nrow = 4, byrow = 4)
+
+out <- eigen(B)
+t(out[,1]) %*% out[,4] # test orthogonality
+
+sqrt(sum(out[,1]^2))
+norm(as.matrix(out[,1]))
