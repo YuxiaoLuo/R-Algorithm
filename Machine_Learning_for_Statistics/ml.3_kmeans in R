@@ -1,0 +1,75 @@
+################################################################################
+# Author: Yuxiao Luo                          Email: yluo52@fordham.edu
+# Kmeans algorithm (R built-in function)      Dataset: 14cancer.txt
+################################################################################
+
+data.1 <- read.delim("14cancer.txt", header = F, sep = "", stringsAsFactors = F)
+
+rownames(data.1) <- 1:nrow(data.1) # fix row names and column names
+colnames(data.1) <- 1:ncol(data.1)
+# transpose rows and columns of data
+data.1 <- as.matrix(data.1)
+data.1 <- t(data.1)
+dim(data.1)
+data.1 <- as.data.frame(data.1)
+
+# fix row names for cancer labels
+columnname <- c(1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,3,3,3,3,3,3,3,3,4,4,4,4,4,4,4,4,5,5,5,5,5,5,5,5,5,5,5,5,5,
+        5,5,5,6,6,6,6,6,6,6,6,7,7,7,7,7,7,7,7,8,8,8,8,8,8,8,8,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,10,10,10,10,10,10,
+        10,10,11,11,11,11,11,11,11,11,12,12,12,12,12,12,12,12,13,13,13,13,13,13,13,13,14,
+        14,14,14,14,14,14,14,14,14,14,14,14,14,14,14)
+length(columnname)
+table(columnname)
+
+#colnames(data.1[,1:8])
+# or you colud sample data to a 6830x64 matrix
+#data.1 <- data.1[sample(nrow(data.1),6830),sample(ncol(data.1),64)]
+#rownames(data.1) <- 1:nrow(data.1)
+#colnames(data.1) <- 1:ncol(data.1)
+
+# run Kmeans for different numbers of cluster centers
+t.sum <- rep(NA,9)
+for(i in 2:10){
+  t.sum[i-1] <- kmeans(data.1, i)$tot.withinss
+}
+rm(i)
+
+# draw plot of sum of square 
+plot(2:10, t.sum, main = "Total within-cluster sum of square", xlab = "Number of Cluster K", ylab = "Sum of Squares",
+     col = "red", pch =19, type = "b")
+rm(t.sum)
+
+k4 <- kmeans(data.1, 4)$cluster
+
+class.type <- function(vector){
+  type <- data.frame("1" = rep(NA,144), "2" = rep(NA,144), "3" = rep(NA,144), "4" = rep(NA,144))
+  for( i in 1:144){
+    
+    if(k4[i] == 1){
+      type[i,1] <- k4[i]
+    }
+    if(k4[i] == 2){
+      type[i,2] <- k4[i] 
+    }
+    if(k4[i] == 3){
+      type[i,3] <- k4[i]
+    }
+    if(k4[i] == 4){
+      type[i,4] <- k4[i]
+    }
+  }
+  return(type)
+}
+type <- class.type(k4)
+type <- t(as.matrix(type))
+type <- as.data.frame(type)
+coln <- c(rep("breast" ,8),rep("prostate",8),rep("lung",8),rep("collerectal",8),rep("lymphoma", 16), rep("bladder", 8),
+          rep("melanoma",8), rep("uterus",8), rep("leukemia", 24), rep("renal",8),rep("pancreas", 8), rep("ovary",8),rep("meso",8),
+          rep("cns", 16))
+colnames(type) <- coln
+rm(coln,columnname)
+type <- t(as.matrix(type))
+type <- as.data.frame(type)
+sum(type[rownames(type) == "cns", 4])
+
+rm(k4, class.type, type)
