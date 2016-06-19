@@ -1,0 +1,96 @@
+####################################################################
+#  Yuxiao Luo                           yuxiaoluo@hotmail.com
+#  Asset Allocation based on expected return, risk free rate, covariance matrix of the returns of n assets
+####################################################################
+
+R <- matrix(c(0.0625, -0.02, 0.015, -0.01, -0.02, 0.0841, -0.025, -0.03, 0.015, -0.025, 0.1024, 0.055,-0.01,-0.03,0.055,0.1225), nrow = 4, ncol=4)
+R
+r <- c(0.046, 0.055, 0.064, 0.073)
+
+########################################## asset allocation of minimum variance portflio
+# input:  R: nxn covariance matrix of the returns of n assets  r: n length vector of expected values of the returns of n assets 
+# r_f: risk free rate   # r_p: required exptected return of portfolio
+
+# output: w_min: asset weights vector   w_mincash = weight of cash position   sigma_min: sd of the return of the min var portfolio
+min_var <- function(R, r, r_f, r_p){
+  
+  n <- length(r)
+  m <- r - rep(r_f, times = n)
+  m <- matrix(m, ncol =1)
+  r <- matrix(r,  ncol =1 )
+  x <- solve(R,m)
+  
+  w_min <- as.numeric((r_p - r_f)/(t(m)%*%x)) * x
+  w_mincash <- 1 - rep(1, times = n) %*% w_min
+  sigma_min <- sqrt(t(w_min)%*%R%*%w_min)
+  Sharpe <- (r_p - r_f)/sigma_min
+  result <- list("Asset_Weights" = w_min, "Cash_Weight" = w_mincash, "Standard_Deviation" = sigma_min, "Sharpe_Ratio" = Sharpe )
+  return(result)
+}
+
+min_var(R, r, 0.02, 0.0575) 
+
+####################################### Asset allocation, expected value, and std of return of the tangency portfolio
+#input: R: nxn covariance matrix; r: vector of returns of assets;  r_f: risk free rate
+
+tan_p <- function(R, r, r_f){ 
+  
+  n <- length(r)
+  m <- r - rep(r_f, times = n)
+  m <- matrix(m, ncol =1)
+  r <- matrix(r, ncol =1)
+  x <- solve(R,m)
+  w_t <- as.numeric(1/(rep(1,times =n) %*% x)) *x
+  
+  r_p <- t(w_t)%*%r
+  sigma_tan <- sqrt(t(w_t)%*%R%*%w_t)
+  Sharpe <- (r_p - r_f)/sigma_tan
+  result <- list("Asset_Allocatoin" = w_t, "Expected_Value" = r_p, "Standard_Deviation" = sigma_tan, "Sharpe Ratio" = Sharpe)
+  return(result) # output: Asset allocation, expected value, and std
+}
+
+tan_p(R,r, 0.02)
+
+####################################### Asset allocation of maximum return portfolio
+# input: R: nxn covariance matrix; r: vector of expected values of ther returns of n assets; r_f: risk free rate; sigma: required sd
+
+# output: w_max: asset weights vector for max return portfolio; 
+# output: w_maxcash: weight of cash for max port; r_max: expected return of max return port
+
+max_r <- function(R, r, r_f, sigma){
+  
+  n <- length(r)
+  m <- r - rep(r_f, times = n)
+  m <- matrix(m, ncol =1)
+  r <- matrix(r, ncol =1)
+  x <- solve(R,m)
+  
+  w_max <- sigma/sqrt(as.numeric(t(m)%*%x)) * x
+  w_maxcash <- 1 - as.numeric(rep(1,times = n)%*% w_max)
+  r_max <- r_f + as.numeric(t(m) %*% w_max)
+  Sharpe <- (r_max - r_f)/sigma
+  result <- list( "Asset_Weights" = w_max, "Cash_Weight" = w_maxcash, "Max_Return" = r_max, "Sharpe Ratio" = Sharpe)
+  return(result)
+}
+max_r(R,r, 0.02, 0.3)
+
+####################################### asset allocation of minimum variance portfolio from tangency portfolio
+# intput and output are the same as above
+
+min_var_tan <- function(R, r, r_f, r_p){
+  n <- length(r)
+  m <- r - rep(r_f, times = n)
+  m <- matrix(m, ncol =1) # transfer m,r to nx1 vector
+  r <- matrix(r, ncol =1)
+  x <- solve(R,m)
+  
+  w_t <- as.numeric(1/(rep(1,times=n) %*% x)) * x
+  w_mincash <- 1 - as.numeric((r_p - r_f)/(t(m)%*%w_t))
+  w_min <- (1-w_mincash) * w_t
+  sigma_min <- sqrt(t(w_min)%*%R%*%w_min)
+  Sharpe <- (r_p - r_f)/sigma_min
+  result <- list("Asset_Weigths" = w_min, "Cash_Weight" = w_mincash, "Stadnrd_Deviation" = sigma_min, "Sharpe Ratio" = Sharpe)
+  return(result)
+}
+
+min_var_tan(R, r , r_f, r_p = 0.03)
