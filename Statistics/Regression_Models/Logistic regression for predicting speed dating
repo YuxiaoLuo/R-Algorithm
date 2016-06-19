@@ -1,0 +1,299 @@
+####################################################################
+#  Yuxiao Luo                 yluo52@fordham.edu
+#  Logistic regression model for predicting speed dating
+#  Data: SpeedDating.csv
+#####################################################################
+
+# input data
+x <- read.csv("SpeedDating.csv", header = T, sep = ",")
+dim(x)
+head(x)
+tail(x)
+
+# fill the contingency table 
+which(x$DecisionM == 0) 
+which(x$DecisionF == 0)
+
+length(which(x$DecisionF == 0)[is.element(which(x$DecisionM == 0), which(x$DecisionF == 0))]) # Decision no both for male and female
+length(which(x$DecisionF == 1)[is.element(which(x$DecisionM == 0), which(x$DecisionF == 1))]) # Decision no for male and yes for female
+length(which(x$DecisionF == 0)[is.element(which(x$DecisionM == 1), which(x$DecisionF == 0))]) # Decision yes for male and no for female
+length(which(x$DecisionF == 1)[is.element(which(x$DecisionM == 1), which(x$DecisionF == 1))]) # Decision yes for male and yes for female
+
+# construct new column second.date
+second.date <- rep(NA, times = 276)
+second.date[which(x$DecisionM == 1)[is.element(which(x$DecisionM == 1), which(x$DecisionF == 1))]] <- 1
+second.date[-which(x$DecisionM == 1)[is.element(which(x$DecisionM == 1), which(x$DecisionF == 1))]] <- 0
+x <- cbind(x,second.date)
+
+# scatterplot of male values and female values
+col.vector <- x$second.date
+col.vector[col.vector == 0] <- "green" # there would not be a second date
+col.vector[col.vector == 1] <- "red" # there would be a second date
+plot(jitter(x$LikeM), jitter(x$LikeF), main = "Scatterplot of Like", las = T, xlab = "Male Values", 
+     ylab = "Female Values", pch = 19, col = col.vector)
+legend("topleft", legend = c("Second Date","No Second Date"), pch = 19,col =c("red", "green"), bty = "n", cex = 1)
+
+plot(jitter(x$PartnerYesM), jitter(x$PartnerYesF), main = "Scatterplot of PartnerYes", las = T, xlab = "Male Values", 
+     ylab = "Female Values", pch = 19, col = col.vector)
+legend("topleft", legend = c("Second Date","No Second Date"), pch = 19,col =c("red", "green"), bty = "n", cex = 1)
+
+plot(jitter(x$AgeM) , jitter(x$AgeF), main = "Scatterplot of Age", las = T, xlab = "Male Values", 
+     ylab = "Female Values", pch = 19, col = col.vector)
+legend("topleft", legend = c("Second Date","No Second Date"), pch = 19,col =c("red", "green"), bty = "n", cex = 1)
+
+plot(jitter(x$AttractiveM), jitter(x$AttractiveF), main = "Scatterplot of Attractiveness", las = T, xlab = "Male Values", ylab = "Female Values", 
+     pch = 19, col = col.vector)
+legend("bottomleft", legend = c("Second Date","No Second Date"), pch = 19,col =c("red", "green"), bty = "n", cex = 1)
+
+plot(jitter(x$SincereM), jitter(x$SincereF), main = "Scatterplot of Sincerity", las = T, xlab = "Male Values", ylab = "Female Values", pch = 19,
+     col = col.vector)
+legend("bottomleft", legend = c("Second Date","No Second Date"), pch = 19,col =c("red", "green"), bty = "n", cex = 1)
+
+plot(jitter(x$IntelligentM), jitter(x$IntelligentF), main = "Scatterplot of Intelligence", las = T, xlab = "Male Values", ylab = "Female Values", 
+     pch = 19, col = col.vector)
+legend("bottomleft", legend = c("Second Date","No Second Date"), pch = 19,col =c("red", "green"), bty = "n", cex = 1)
+
+plot(jitter(x$FunM), jitter(x$FunF), main = "Scatterplot of Fun", las = T, xlab = "Male Values", ylab = "Female Values", pch = 19, col = col.vector)
+legend("bottomleft", legend = c("Second Date","No Second Date"), pch = 19,col =c("red", "green"), bty = "n", cex = 1)
+
+plot(jitter(x$AmbitiousM), jitter(x$AmbitiousF), main = "Scatterplot of Ambition", las = T, xlab = "Males Values", ylab = "Female Values", pch = 19, 
+     col = col.vector)
+legend("bottomleft", legend = c("Second Date","No Second Date"), pch = 19,col =c("red", "green"), bty = "n", cex = 1)
+
+plot(jitter(x$SharedInterestsM), jitter(x$SharedInterestsF), main = "Scatterplot of Shared Interests", las = T, xlab = "Males Values", 
+     ylab = "Female Values", pch = 19, col = col.vector)
+legend("topleft", legend = c("Second Date","No Second Date"), pch = 19,col =c("red", "green"), bty = "n", cex = 1)
+
+# check responses out of range
+sum(x[,c(3,4,5,6,11:22)] > 10, na.rm = T) # result is 0
+sum(x[,c(3,4,5,6,11:22)] < 1, na.rm = T) # result is 8
+summary(x) # find which column has the out-of-range value
+
+# function for computing how many observations have NA values
+howmanyNA <- function(x){ # input is a data frame, output is the number observations that have NA values
+  iter <- 0
+  for( i in 1:nrow(x)){
+    if( anyNA(x[i,]) == T)
+      iter <- iter + 1
+    else 
+      iter <- iter
+  }
+  return(iter)
+} # end function
+
+howmanyNA(x)
+
+# clean out-of-range values
+sum(x$FunM < 1, na.rm = T) # 1
+x$FunM[which(x$FunM < 1)] <- NA
+
+sum(x$SharedInterestsM < 1, na.rm = T) # 4
+x$SharedInterestsM[which(x$SharedInterestsM < 1)] <- NA
+
+sum(x$SharedInterestsF < 1, na.rm = T) # 2
+x$SharedInterestsF[which(x$SharedInterestsF < 1)] <- NA
+
+summary(x) # NA values for each varaible
+
+howmanyNA(x) # 82 observations have NA vlaues after data clean
+
+table(x$RaceM)
+table(x$RaceF)
+# construct the race table
+#table.race <- rbind(table(x$RaceM), table(x$RaceF))
+#rownames(table.race) <- c("RaceM", "RaceF")
+#table.race <- table.race[,-1]
+
+# replace missing data with NA values
+class(x$RaceM)
+levels(x$RaceM)[1] <- "Unknown"
+levels(x$RaceF)[1] <- "Unknown"
+
+# mosaicplot of category data
+mosaicplot(table(x$RaceM, x$RaceF), las = T, main = "Distribution of Race of Female and Males", xlab = "Female", ylab = "Male",
+           color = c("azure","orange", "black", "white", "goldenrod","cadetblue"))
+
+### check multicollinearity
+# Scatterplot matrix
+pairs(x[,c("LikeM", "LikeF", "PartnerYesM","PartnerYesF","AgeM","AgeF","AttractiveM","AttractiveF", "SincereM","SincereF",
+           "IntelligentM","IntelligentF", "FunM", "FunF", "AmbitiousM", "AmbitiousF", "SharedInterestsM", "SharedInterestsF")],
+      main = "Pairwise Scatterplots of Speed Dating", las = T, col = "#0080ff70", pch = 19)
+# correlation matrix
+cor(na.omit(x[,c("LikeM", "LikeF", "PartnerYesM","PartnerYesF","AgeM","AgeF","AttractiveM","AttractiveF", "SincereM","SincereF",
+                 "IntelligentM","IntelligentF", "FunM", "FunF", "AmbitiousM", "AmbitiousF", "SharedInterestsM", "SharedInterestsF")]))
+# VIF 
+require(usdm)
+vif(na.omit(x[,c("LikeM", "LikeF", "PartnerYesM","PartnerYesF","AgeM","AgeF","AttractiveM","AttractiveF", "SincereM","SincereF",
+                 "IntelligentM","IntelligentF", "FunM", "FunF", "AmbitiousM", "AmbitiousF", "SharedInterestsM", "SharedInterestsF")]))
+t(as.matrix(vif(na.omit(x[,c("LikeM", "LikeF", "PartnerYesM","PartnerYesF","AgeM","AgeF","AttractiveM","AttractiveF", "SincereM",
+                             "SincereF","IntelligentM","IntelligentF", "FunM", "FunF", "AmbitiousM", "AmbitiousF", 
+                             "SharedInterestsM", "SharedInterestsF")]))))
+
+## logistic regression
+glm.all <- glm(second.date ~ LikeM+LikeF+PartnerYesM+PartnerYesF+AgeM+AgeF+AttractiveM+
+               AttractiveF+SincereM+SincereF+IntelligentM+IntelligentF+FunM+
+               FunF+AmbitiousM+AmbitiousF+SharedInterestsM+SharedInterestsF, data=x, family=binomial(link="logit"))
+summary(glm.all)
+
+glm.x <- glm( second.date ~ FunF + PartnerYesM, data = x, family = binomial(link = "logit"))
+summary(glm.x)
+
+#plot fitted line (possible only when you have 1 explanatory variable)
+plot(x$FunF, x$second.date, las=TRUE, xlab="FunF", ylab="Second.Date Failure",
+     main="Scatterplot of Second.date Failure vs. FunF", pch=19, cex.lab=1.3, cex.main=1.2, cex.axis=1.3)
+f <- function(x){
+  temp <- exp(as.vector(glm.x$coef[1] + glm.x$coef[2]*x))
+  return(temp/(1+temp))
+} # end function
+curve(f, from=0, to=15, lwd=2, col="firebrick", add=TRUE)
+legend("topleft", legend= "fitted line for Pi", bty="n", lwd=2, col="firebrick", cex=1.2)
+range(na.omit(x$FunF))
+
+# residual plots for the regression
+pch.vector <- x$second.date
+pch.vector[pch.vector == 0] <- 5 # there would not be a second date
+pch.vector[pch.vector == 1] <- 19 # there would be a second date
+
+plot(glm.x$fitted.values, summary(glm.x)$deviance.resid,pch= pch.vector, las=TRUE,
+     main="Residuals vs. Fitted Values", xlab="fitted values", ylab="residuals",
+     cex.main=1.4, cex.lab=1.4, cex.axis=1.4)
+abline( h= 0, col = "red", lwd = 2, lty = 2)
+legend("topright", legend = c("Second Date","No Second Date"), pch = c(19, 5), bty = "n", cex = 1)
+
+plot(1:267, summary(glm.x)$deviance.resid,pch= pch.vector, las=TRUE,
+     main="Residuals", xlab="Observations", ylab="Residuals",
+     cex.main=1.4, cex.lab=1.4, cex.axis=1.4)
+abline( h= 0, col = "red", lwd = 2, lty = 2)
+legend("bottomleft", legend = c("Second Date","No Second Date"), pch = c(19, 5), bty = "n", cex = 1)
+
+plot(x$FunF, c(summary(glm.x)$deviance.resid, rep(NA,9)), pch= pch.vector, las=TRUE,
+     main="Residuals vs. FunF", xlab="FunF", ylab="Residuals",
+     cex.main=1.4, cex.lab=1.4, cex.axis=1.4)
+abline( h= 0, col = "red", lwd = 2, lty = 2)
+legend("topleft", legend = c("Second Date","No Second Date"), pch = c(19, 5), bty = "n", cex = 1)
+
+plot(x$PartnerYesM, c(summary(glm.x)$deviance.resid, rep(NA,9)), pch= pch.vector, las=TRUE,
+     main="Residuals vs. PartnerYesM", xlab="PartnerYesM", ylab="Residuals",
+     cex.main=1.4, cex.lab=1.4, cex.axis=1.4)
+abline( h= 0, col = "red", lwd = 2, lty = 2)
+legend("topleft", legend = c("Second Date","No Second Date"), pch = c(19, 5), bty = "n", cex = 1)
+
+# likelihood test
+pchisq(summary(glm.x)$null.deviance - summary(glm.x)$deviance, 
+       df=summary(glm.x)$df.null - summary(glm.x)$df.residual,
+       lower.tail=FALSE)
+       
+# construct the data.frame used for fitting the model
+names(glm.x)
+temp <- data.frame("1" = summary(glm.x)$deviance.resid)
+glm.d <- x[rownames(temp),]
+rownames(glm.d) <- 1:nrow(glm.d)
+rm(temp)
+
+length(which(glm.d$DecisionF == 0)[is.element(which(glm.d$DecisionM == 0), which(glm.d$DecisionF == 0))]) # Decision no both for male and female
+length(which(glm.d$DecisionF == 1)[is.element(which(glm.d$DecisionM == 0), which(glm.d$DecisionF == 1))]) # Decision no for male and yes for female
+length(which(glm.d$DecisionF == 0)[is.element(which(glm.d$DecisionM == 1), which(glm.d$DecisionF == 0))]) # Decision yes for male and no for female
+length(which(glm.d$DecisionF == 1)[is.element(which(glm.d$DecisionM == 1), which(glm.d$DecisionF == 1))]) # Decision yes for male and yes for female
+
+temp <- glm.d$PartnerYesM
+length(temp[glm.d$second.date == 0])
+length(temp[glm.d$second.date == 1])
+rm(temp)
+
+temp <- glm.d$FunF
+length(temp[glm.d$second.date == 0])
+length(temp[glm.d$second.date == 1])
+
+# original data
+temp <- rep("Second date", times=nrow(x))
+temp[x$second.date == 0] <- "No second date"
+
+# accuracy for 10% threshold
+
+predict.52 <- rep("predict no second date", times=nrow(x))
+predict.52[as.vector(glm.x$fitted.values > 0.52)] <- "predict second-date"
+
+table(temp, predict.52) 
+
+mosaicplot(table(temp, predict.52), main="Classifications with 52% Threshold",
+           xlab="observed data", ylab="predicted classification", las=TRUE,
+           col=c("firebrick", "navyblue"), cex.axis=1.2)
+
+require(pROC)
+# choice of threshold
+auc <- function(x, glm.x){ # input x is data.frame, glm.x is regression model
+  auc<-rep(NA,times=100)
+  for(i in c(1:100)){
+    predict <- rep(1, times=nrow(x))
+    predict[as.vector(glm.x$fitted.values < i/100)] <- 0
+    auc[i]<-roc(response=x$second.date, predictor=predict, plot=FALSE, las=TRUE, legacy.axes=TRUE, lwd=5,
+                main="ROC", cex.main=1.6, cex.axis=1.3, cex.lab=1.3)$auc
+  }#end of for
+  print(max(auc))
+  return(which.max(auc))
+}
+auc(x, glm.x)
+
+# load R package
+require(pROC)
+# another package is ROCR
+
+# plot ROC curves
+#pdf("roc_oring.pdf", height=7, width=7)
+roc(response = glm.d$second.date, predictor=glm.x$fitted.values, plot=TRUE, las=TRUE, legacy.axes=TRUE, lwd=5,
+    main="ROC for Second.date Analysis", cex.main=1.6, cex.axis=1.3, cex.lab=1.3)
+#dev.off()
+
+# get AUC
+roc(response = glm.d$second.date, predictor=glm.x$fitted.values, 
+    plot=FALSE)
+
+## jackkinfe procedure
+require(bootstrap)
+
+glm.x$coefficients
+jf <- function(x,y){
+  result <- -7.2158682 + 0.4516897*x + 0.4574071*y
+  result <- exp(1)^(result)/(1+exp(1)^(result))
+  return(result)
+}
+jackknife(  x$FunF, jf, x$PartnerYesM)
+
+###jackknife procedure
+require(MASS)
+require(rgl)
+require(robustbase)
+require(Matrix)
+require(qpcR)
+require(minpack.lm)
+
+press<-PRESS(glm.x)
+stat<-PRESS(glm.x)$stat
+sqrt(PRESS(glm.x)$stat/(nrow(logisd)-6-1))
+residual<-press$residuals
+summary(press)
+as.vector(predict(glm.x,data=logisd[-1,])[1])
+as.vector(predict(glm.x,data=logisd)[1])
+
+glm.x <- glm(second.date~PartnerYesM +FunF, family = binomial(link = "logit"), data = x)
+jack.prd<-NULL
+a<-NULL
+for(i in 1:nrow(x)){
+  a[i]<-as.vector(predict(glm(second.date~PartnerYesM + FunF, family = binomial(link = "logit"),data = x[-i,]),newdata=x[i,]))
+  jack.prd[i]<-exp(a[i])/(1+exp(a[i]))
+}#end for loop
+
+jack.prd
+jack.prd[jack.prd < 0.52]<- 0
+jack.prd[jack.prd >=0.52]<-1
+jack.prd[jack.prd==0]<-"no second date"
+jack.prd[jack.prd==1]<-"second date"
+table(temp,jack.prd)
+
+plot( 1:276, c(glm.x$fitted.values,rep(0,9)) -jack.prd, pch = 19, las = T, main = "Difference of the result of Logistics Regression 
+      and Jackknife")
+abline(h = 0, lty = 2, col = "red", lwd =2 )
+
+plot( 1:267, glm.x$fitted.values - glm.d$second.date, pch = 19, las = T, main = "Difference of the result of Logistics Regression 
+      and Jackknife")
+abline(h = 0, lty = 2, col = "red", lwd =2 )
