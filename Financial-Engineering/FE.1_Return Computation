@@ -1,0 +1,77 @@
+####################################################################
+#  Yuxiao Luo                           yuxiaoluo@hotmail.com
+#  percentage return, log return        data: indices-july2011.csv
+####################################################################
+
+x <- read.table("indices-july2011.csv", header = T, stringsAsFactors = F, sep = ",")
+head(x)
+nrow(x)
+
+
+
+p.return <- function(vector){ # function for computing percentage return 
+  
+  index <- 0 
+  p.r.vector <- rep(NA, times = nrow(x)) # set the vector for percentage return
+  
+  for( i in 2:nrow(x)){ # for loop
+              
+     p.r.vector[i] <- (vector[i] - vector[i-1])/vector[i-1]
+     
+     index <- index + 1 # index add one at each iteration         
+                
+  } 
+
+  return(p.r.vector) # output result
+}
+
+
+pr.ccmp <- p.return(x$CCMP.Index)
+pr.indu <- p.return(x$INDU.Index)
+pr.tran <- p.return(x$TRAN.Index)
+pr.util <- p.return(x$UTIL.Index)
+pr.nya <- p.return(x$NYA.Index)
+pr.spx <- p.return(x$SPX.Index)
+pr.oex <- p.return(x$OEX.Index)
+pr.xax <-p.return(x$XAX.Index)
+pr.omx <-p.return(x$OMX.Index)
+
+pr <- data.frame("CCMP.Index" = pr.ccmp, "INDU.Index" = pr.indu, "TRAN.Index" = pr.tran, "UTIL.Index" = pr.util, 
+                 "NYA.Index" = pr.nya, "SPX.Index" = pr.spx, "OEX.Index" = pr.oex, "XAX.Index" = pr.xax, "OMX.Index" = pr.omx)
+pr <- pr[2:nrow(pr),]
+
+rownames(pr) <- 1:nrow(pr)
+
+round(cov(pr)/10^-6, digits = 3) # the covariance matrix of Daily Percentage Return
+round(cor(pr), digits =3) # the correlation matrix of Daily Percentage Return
+
+######################################################## the log return function input: data frame , output: data frame
+l.return <- function(data.frame){
+  
+  lr <- x[,2:ncol(x)] # remove the date colum in data frame
+  lr[1,] <-NA
+  
+  for(i in 2:ncol(x)){ # first for loop for different columns in data frame x
+    
+    vector <- x[,i]
+    
+    index <- 0
+    l.r.vector <- rep(NA, times = nrow(x)) # vector for storing the value of log returns of each column
+      
+    for(j in 2:nrow(x)){ # second for loop for computing the log returns of each column 
+    
+        l.r.vector[j] <- log(vector[j]) - log(vector[j-1])
+        index <- index +1
+      } # end for loop
+  
+    lr[,i-1] <- l.r.vector # input the each column of data frame x with the computed log return
+  } # end second for loop
+  
+  return(lr)
+}
+
+lr <- l.return(x)
+lr <- lr[2:nrow(lr),]
+rownames(lr) <- 1:nrow(lr)
+cov(lr)
+round(cov(lr)/10^-6, digits =3) # output the log return with rounded number 
