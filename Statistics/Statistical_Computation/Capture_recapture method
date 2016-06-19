@@ -1,0 +1,166 @@
+####################################################################
+#  Yuxiao Luo                           yuxiaoluo@hotmail.com
+#  Capture-recapture method
+#####################################################################
+
+# set the number of N, n1, and n2
+N <- 5000 
+n1 <- 100
+n2 <- 100
+
+# sample the captured individuals twice
+n.1 <- sample(1:N, size = n1)
+n.2 <- sample(1:N, size = n2)
+
+m2 <- intersect(n.1,n.2) # find out tagged individuals and determine m2
+
+nlp <- n1*n2/length(m2) # calculate nlp with the equation 
+
+nlp # print nlp
+
+######1.
+rm(list = ls()) # clean remained variables
+
+cap.recap <- function(N = 5000, n1 = 100, n2 = 100, num.sim = 1000){
+  # N: the population of size 
+  # n1: 100 individuals firstly captured 
+  # n2 : 100 individuals secondly captured
+  # num.sim: number of simulation runs
+  
+  # set the vector for stroing the number for each iteration
+  index.m2 <- rep(NA, times = num.sim)
+  index.nlp <- rep(NA, times = num.sim)
+    
+  for(i in 1:num.sim){ # use for loop
+  
+  # simulate the capture procedure  
+  n.1 <- sample(1:N, size = n1) 
+  n.2 <- sample(1:N, size = n2)
+  m2 <- intersect(n.1, n.2) # compute the individuals both captured in 2 procedure
+  nlp <- n1*n2/length(m2) # compute nlp
+  index.m2[i] <- length(m2)
+  index.nlp[i] <- nlp
+  
+  } # end loop
+  
+  result <- data.frame("Values.m2" = index.m2, "NLP" = index.nlp) # format results
+  return(list("result" = result, "N" = N)) # return two objects: a data frame called result, and the size N of population
+}# end function
+
+result <- cap.recap(N = 5000, n1 = 100, n2 = 100, num.sim = 1000) 
+
+#####2.
+
+result <- cap.recap(N = 5000, n1 = 100, n2 = 100, num.sim = 1000) 
+
+NLP <- result[[1]]$NLP # extract the NLP values to a vector
+NLP.clean <- result[[1]]$NLP[!is.infinite(result[[1]]$NLP)] # omit the inifinity value for plotting 
+range(NLP.clean/5000) # find the range for plotting
+table(NLP.clean/5000) 
+# construct the histogram of the NLP vector
+hist(NLP.clean,las =T, col = "cadetblue", density = 30, angle =50, border = "black",xlim = c(0,10000), 
+     ylim = c(0,300), main="Empirical Sampling Distribution\n for NLP", xlab="NLP outcomes", ylab="Frequency")
+# indicate the N using a dash line 
+abline(v=5000, col="firebrick", lty=2, lwd=2)
+axis(side=1, at=5000, label="5000", col="red", las=TRUE)
+# indicate N on plot
+text(x=800, y=300, labels="N = 5000") 
+
+dev.off()
+
+result.inf <- result[is.infinite(result[[1]]$NLP)] # extract the infinite number in result to a list
+percent <- length(result.inf)/length(result[[1]]$NLP) # calculate the percent of estimated population values were infinite
+
+percent # the output is 0.124
+
+m2 <- result[[1]]$Values.m2 # extract the m2 value in result to a new vector
+n1 <- 100 # set n1
+n2 <- 100 # set n2
+nc <- ((n1+1)*(n2+1)/(m2+1)) - 1 # compute the Chapman estimates
+nc
+
+# construct a histogram of the resulting NC estimates
+hist(nc, main = "Empirical Chapman estimates\n based on cap.recap", xlab = "Chapman estimates", 
+     ylab = "Frequency", las =T, col = "cadetblue", density = 30, angle =50, border = "black", xlim = c(0,12000))
+# indicate the N using a dash line 
+abline(v=5000, col="firebrick", lty=2, lwd=2)
+axis(side=1, at=5000, label="5000", col="red", las=TRUE)
+# indicate N on plot
+text(x=800, y=300, labels="N = 5000")
+
+dev.off()
+
+bias.LP <- sum(NLP.clean/length(NLP.clean)) - 5000 # use the NLP.clean without infinity value
+bias.LP # the outcome is 799.6634 
+
+bias.C <- mean(nc) - 5000 # calcuate the bias of Chapman estimator
+bias.C # the outcome is -455.0579
+
+# Thus, both of the estimators are biased when n1,n2 = 100.
+
+#Solution: Chapman estimator is bettter.
+# Firstly, the bias of the Chapman estimator is closer to 0 because the absolute value of Chapman 
+# estimator is less than that of Lincoln-Peterson. 
+# Secondly, the Chapman estimator can avoid the infinity value once m2 is equal to 0 while the Lincoln-Peterson 
+# estimator couldn't.
+
+rm(list=ls()) # clean the variables
+
+# construct the cap-recap function
+advanced.cap <- function(N, num.sim, n){
+  
+  # set the vector for stroing the variance, bias for each iteration
+  index.var <- rep(NA, times = length(n))
+  index.bias <- rep(NA, times = length(n))
+  
+  for(j in 1:length(n)){ # use for loop
+     
+    # set the vector for storing  
+    index.cp <- rep(NA, times = num.sim)
+    
+    for(i in 1:num.sim){ # use for loop
+         
+        # simulate the capture procedure  
+        n.1 <- sample(1:N, size = n[j]) 
+        n.2 <- sample(1:N, size = n[j])
+        m2 <- intersect(n.1, n.2) # compute the individuals both captured in 2 procedure
+        cp <- ((n[j]+1)*(n[j]+1)/(length(m2)+1)) - 1 # compute Chapman estimator for each interation
+        index.cp[i] <- cp # add the cp value to the cp vector 
+    
+       } # end loop
+    
+    index.var[j] <- var(index.cp) # add variance value to the variance vector 
+    index.bias[j] <- mean(index.cp) - N # add bias value to the vector
+    
+  } # end loop
+  
+  result <- data.frame("n" = n, "Bias.Nc" = index.bias, "Var.Nc" = index.var) # construct data frame with 3 columns
+  return (list("Result" = result, "True Population Size" = N)) # return the list with two sections
+ 
+}# end function
+
+a <- Sys.time() # set the start time
+test <- advanced.cap(N =100000, num.sim = 1000, n = seq(from = 100, to = 5000, by =50)) # function with reqiured arguments
+b <- Sys.time() # set the end time
+c <- b - a # check the time difference
+test # print the result
+
+# construct plot (a)
+par(mar=c(5, 7, 4, 2)+0.1) # adding a wider margin to the left side 
+plot(test$Result$n,test$Result$Bias.Nc, las = T, type = "b", main = " bias vs. n", xlab = "Sample Size n", ylab = "", 
+     pch= 20) # plotting
+title(ylab = "Bias", cex.lab = 1, line = 4.5) # adjust the substile of y-axis avoid being covelapped 
+abline(h = 0, col = "red", lty =2 ,lwd = 2) # draw a line to indicate zero and connect points with it
+axis(side=2, at=0, label="0", col="firebrick", las=TRUE) # indicate the zero label of y-axis
+
+dev.off()
+
+# construct plot (b)
+par(mar = c(5,7,4,2) + 0.1) # adding a wider margin to the left side
+plot(test$Result$n,test$Result$Var.Nc, type = "b", main = "Variance vs. n", xlab = "Sample Size n", ylab = "",
+    pch = 20, las = T)
+title(ylab = "Variance", cex.lab = 1, line = 4.5) # adjust the substile of y-axis avoid being covelapped
+abline(h = 0, col = "red", lty = 2, lwd =2) # draw a line to indicate zero and connect points with it
+axis(side=2, at=0, label="0", col="red", las=TRUE) # indicate the zero label of y-axis
+
+dev.off()
