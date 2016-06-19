@@ -1,0 +1,69 @@
+##############################################################################
+#   Author: Yuxiao Luo               Email:yluo52@fordham.edu
+#   Ridge Regression                 Data set: hw1b
+##############################################################################
+ridge <- function(lambda, x, y){ #regularization constant lambda, matrix x as independent variable, vector y as dependent variable
+  
+  x <- as.matrix(x)
+  y <- as.matrix(y)
+  
+  # compute B 
+  B <- ginv(t(x)%*%x + diag(lambda, nrow = ncol(x))) %*% t(x) %*% y 
+  
+  y.es <- x%*%B
+  error <- y-y.es
+  lossf <- mean(error^2)
+  
+  b.l <- list("B" = B, "lossf" = lossf)
+  return(b.l)
+} #end function
+
+# plug the B computed from training data into the testing data as B
+ridge.re <- function(lambda, ridge, x.tr, y.tr, x.te, y.te){
+  
+  x.te <- as.matrix(x.te)
+  y.te <- as.matrix(y.te)
+  
+  # extract the B from the output of ridge function
+  ridge.train.B <- as.matrix(unlist(ridge(lambda, x.tr,y.tr)[1])) 
+  
+  y.te.tr <- x.te %*% ridge.train.B
+  
+  error.test <- y.te - y.te.tr
+    
+  lossf.te <- mean(error.test^2)
+  
+  return(lossf.te)
+}
+
+# seperate the data into training and test parts with sampling
+ind.2 <- sample(seq_len(nrow(hw1b)), size = floor(0.5 * nrow(hw1b)))
+train.2 <- hw1b[ind.2,]
+rownames(train.2) <- 1:nrow(train.2)
+test.2 <- hw1b[-ind.2,]
+rownames(test.2) <- 1:nrow(test.2)
+
+# find the minmum value of the testing error 
+min <- min(sapply(0:1000, ridge.re, ridge = ridge, x.tr = train.2[,-1], y.tr = train.2[,1], x.te = test.2[,-1],y.te= test.2[,1]))
+min
+min.index <- which.min(sapply(0:1000, ridge.re, ridge = ridge, x.tr = train.2[,-1], y.tr = train.2[,1], 
+                              x.te = test.2[,-1], y.te= test.2[,1]))
+min.index
+
+# the minimal value of testing error is 110.9871, and lambda is 561.
+# plot the training error and testing error
+
+
+plot(0:1000, sapply(0:1000, ridge.re, ridge = ridge, x.tr = train.2[,-1], y.tr = train.2[,1], x.te = test.2[,-1],
+                      y.te= test.2[,1]), las = T, main = "Error vs. Lambda", xlab = "lambda", ylab = "Error",col = "yellow",
+     xlim = c(0,1000), ylim = c(0,250), pch = 19)
+points(0:1000, unlist(sapply(0:1000, ridge, x = train.2[,-1], y= train.2[,1])[2,]), las =T, main = "Error vs. Lambda", 
+     xlab = "lambda", ylab = "Error", col = "green")
+legend("topright", legend = c("Testing error", "Training error"), lwd =3, col = c("yellow", "green")) #add legend
+arrows(min.index, min + 20, min.index, min, length = 0.2, angle = 30, col = "red") # add arrows
+text(min.index -5, min + 28, labels = "Min") # add "Min" to the plot
+
+#Conclusion: As we can see in the plot, the testing error is descending and the training error is ascending when the lambda is 
+# increasing. The minimum of testing error is 110.9871 and lambda is 561.
+
+dev.off()
