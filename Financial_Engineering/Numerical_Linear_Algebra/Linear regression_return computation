@@ -1,0 +1,65 @@
+####################################################################
+#  Yuxiao Luo                           yuxiaoluo@hotmail.com
+#  Linear regression ( inlucding return computation)
+####################################################################
+
+options(digits = 4)
+
+M <- matrix(c(39.0,116.3,17.1,8.8,36.8,105.7,15.0,8.0,36.9,104.5,14.6,8.2,36.7,103.2,14.5,
+         8.0,36.6,102.6,14.6,7.7,35.8,100.5,13.8,7.4,36.6,101.2,13.5,7.3,33.7,93.8,12.7,7.1), byrow = T ,nrow =8, ncol =4)
+
+##### percentage return
+p.return <- function(vector){ # function for computing percentage return 
+  
+  n <- length(vector)
+  index <- 0 
+  p.r.vector <- rep(NA, times = n) # set the vector for percentage return
+  
+  for( i in 2:n){ # for loop
+    
+    p.r.vector[i] <- (vector[i] - vector[i-1])/vector[i-1]
+    
+    index <- index + 1 # index add one at each iteration         
+    
+  } 
+  p.r.vector <- p.r.vector[-1]
+  return(p.r.vector) # output result
+}
+
+p.return(M[,1])
+p.return(M[,2])
+p.return(M[,3])
+p.return(M[,4])
+per.re <- data.frame("1" = p.return(M[,1]), "2" = p.return(M[,2]), "3" = p.return(M[,3]), "4" = p.return(M[,4]) )
+per.re
+
+# construct y
+y <- as.matrix(per.re[,2])
+# construct A
+# A <- as.matrix(cbind(data.frame("1" = rep(1,times = 9)),per.re[,-2]))
+A <- as.matrix(per.re[,-2])
+colnames(A) <- c(1,2,3,4)
+x <- solve(t(A)%*%A, t(A)%*%y) # solve linear system y = Ax; x = solve(A'A, A'y)
+x
+
+
+
+##### compute estimated returns 
+# input vectors, output vectors of estimated returns
+R_LR <- function(A1, A2, A3){
+  
+  n <- length(A1)
+  result <- rep(NA, times = n)
+  for(i in 1:n){
+    
+    result[i] <- x[1] + A1[i]*x[2] + A2[i]*x[3] + A3[i]*x[4]
+    
+  }
+  return(result)
+}
+
+estimate <- R_LR(per.re[,2],per.re[,3],per.re[,4])
+
+error <-sqrt(sum((per.re[,1] - estimate)^2))
+sqrt(sum((M[,1] - per.re)^2)) # calculate sum of square and then root it
+
