@@ -1,0 +1,296 @@
+####################################################################
+#  Yuxiao Luo                 yluo52@fordham.edu
+#  Portfolio optimization 
+#####################################################################
+
+# upload the asset data
+data.x <- read.table("asset_data.txt", header = T, sep = ",", stringsAsFactors = F) 
+dim(data.x) #check the dimension of data.x
+head(data.x) 
+names(data.x) # check column names
+
+class(data.x$date) # check the type of first column 
+data.x$date <- as.Date(data.x$date, format = "%Y-%m-%d") # turn the character string to a date
+class(data.x$date) # check the type again
+
+# extract only the observations where the fed.rate is available
+data.weekly <- data.x[complete.cases(data.x),]
+head(data.weekly)
+tail(data.weekly)
+
+# reset the number of rows in reduced data set
+rownames(data.weekly) <- 1:nrow(data.weekly)
+head(data.weekly)
+tail(data.weekly)
+
+data.weekly[1,1] # the start date, which is 2003-01-08 
+data.weekly[nrow(data.weekly),1] # the end date, which is 2014-10-29
+
+# graph the fed.rate as a times series in a plot
+plot(x = data.weekly$date,y = data.weekly$fed.rate, las =T, main = "Time Series Plot of the Federal Funds Interest Rate", 
+     type = "l", xlab = "Year", ylab = "Federal Interest Rate (%)")
+abline(h=0, lty =2, col = "firebrick") # add a line the plot at zero at Y-axis
+
+dev.off()
+
+data.x <- data.weekly # the weekly data will be used for the rest of the analysis 
+rm(data.weekly) # remove the temporary data 
+
+data.x[substr(data.x$date, start = 1, stop =4) == "2014",] # extract the observations in 2014 using keywords "2014"
+
+data.training <- data.x[substr(data.x$date, start = 1, stop =4) != "2014",] # generate the training set
+data.test <- data.x[substr(data.x$date, start = 1, stop =4) == "2014",] # generate the test set
+rownames(data.test) <- 1:nrow(data.test) # reset the row number of test set
+ 
+data.training$fed.rate <- data.training$fed.rate/100 # convert the fed.rate to decimal 
+data.test$fed.rate <- data.test$fed.rate/100 # convert the fed.rate to decimal
+
+# compute the total returns of asset S&P 500
+tr.spy <- (data.training$close.spy[2:nrow(data.training)] - 
+             data.training$close.spy[1:(nrow(data.training)-1)])/data.training$close.spy[1:(nrow(data.training)-1)] 
+tr.spy <- c(NA,tr.spy) # add NA value as the first total return (for 2003-01-08) since there is no P_t-1
+data.training <- data.frame(data.training, "tr.spy" = tr.spy) # add returns vector to the data frame of training set
+
+# compute the total returns of asset long term treasury bonds ETF assets
+tr.tlt <- (data.training$close.tlt[2:nrow(data.training)] - 
+             data.training$close.tlt[1:(nrow(data.training)-1)])/data.training$close.tlt[1:(nrow(data.training)-1)] 
+tr.tlt <- c(NA,tr.tlt) # add NA value as the first total return (for 2003-01-08) since there is no P_t-1
+data.training <- data.frame(data.training, "tr.tlt" = tr.tlt)
+
+par(mfrow = c(2,1)) # 
+# generate the plot of toatal returns of S&P 500
+plot(x = data.training$date, y = data.training$tr.spy, las =T, main = "Time Series Plot of the Total Return of S&P 500",
+     type = "l", xlab = "Year", ylab = "Total Return of S&P 500 (%)", ylim = c(-0.20, 0.10))
+abline(h=0, lty =2, lwd = 2, col = "red") # add the horizontal line at y=0 to the plot
+axis(side =2, at =0 , labels = "",las = T, col = "red") # add the axis label
+
+# generate the plot of total returns of long term treasury bonds ETF
+plot(x = data.training$date, y = data.training$tr.tlt, las =T, main = "Time Series Plot of the Total Return of ETF",
+     type = "l", xlab = "Year", ylab = "Total Return of ETF (%)", ylim = c(-0.20, 0.10))
+abline(h=0, lty =2, lwd = 2, col = "red") # add the horizontal line at y=0 to the plot
+axis(side =2, at =0 , labels = "",las = T, col = "red") # add the axis label
+
+dev.off()
+
+# construct the normal quantile plot of toatal return of S&P 500
+qqnorm(data.training$tr.spy, pch =19, las =T, main = "Normal Q-Q Plot of Total Return of\n S&P 500",
+       ylab = "Total Return of S&P 500", cex.lab = 1.2)
+qqline(data.training$tr.spy) # add a line to the plot
+
+dev.off()
+
+qqnorm(data.training$tr.tlt, pch =19, las =T, main = "Normal Q-Q Plot of Total Return of\n ETF",
+       ylab = "Total Return of ETF", cex.lab = 1.2)
+qqline(data.training$tr.tlt) # add a line to the plot
+
+dev.off()
+
+# compute the correlation between the S&P 500 and long term treasury bond returns
+cor(data.training$tr.spy, data.training$tr.tlt, use = "na.or.complete") # which is -0.3439
+
+plot(data.training$tr.spy,data.training$tr.tlt, main = "Scatter Plot of Total Return of\nS&P 500 and ETF",
+     xlab = "Total Return of S&P 500", ylab = "Total Return of ETF") # construct a scatter plot of these two asssets
+abline(h =0, col = "firebrick", lty =2, lwd=2) # add the zero line to the plot
+axis(side =2, at = 0, labels = "",col = "red", lwd =2) # mark the label's color as red
+abline(v=0, col = "firebrick", lty =2, lwd =2) # add the zero line to the plot
+axis(side =1, at =0, labels = "", col = "red", lwd = 2) # mark the label's color as red
+
+dev.off()
+
+# Compute the rolling-window correlation 
+
+rolling.window <- rep(NA, length = (570 -24 +1 -2 +1)) # set the rolling-window correlation vector 
+z <- 0 # set the debugging index to 0 
+
+for(i in 2:(570 -24 +1)){ # use for loop to compute the rolling-window correlation for 546 times
+  
+  # compute the correlations and add them to the vector 
+  rolling.window[i-1] <- cor(data.training$tr.spy[i:(i+24-1)], data.training$tr.tlt[i:(i+24-1)])  
+  z <- z+1 # the times of calculation for debugging
+  
+}# end loop
+
+sum(is.na(rolling.window)) # check whether there is missing correlation
+z == length(rolling.window) # check debugging index, which is true
+rm(z,i)
+rolling.window
+
+rolling.window <- c(rep(NA,times = 24), rolling.window) # add NA value to the vacant positions in the column
+ 
+data.training.temp <- data.training 
+data.training.temp <- data.frame(data.training.temp, "rolling.window.cor" = rolling.window) # add the vector to the data frame
+
+# construct the time series plot of the rolling-window correlation 
+plot(x = data.training.temp$date,y = data.training.temp$rolling.window.cor, las =T, 
+     main = "Time Series Plot of\n the Rolling-Window Correlation", 
+     type = "l", xlab = "Year", ylab = "Rolling-Window Corelation") 
+abline(h=0, lty =2, lwd =2, col = "gray50") # add a line the plot at zero at Y-axis
+dev.off()
+
+r_t.spy <- data.training$tr.spy # set the return of S&P 500
+r_t.tlt <- data.training$tr.tlt # set the return of ETF
+y_t.fed <- data.training$fed.rate # y_t is the federal funds interest rate
+
+# construct a function to calculate the Sharpe Ratio for two different assets
+function.SR <- function(r_t,y_t){
+     
+#Step 1 compute the excess returns
+     e_t <- r_t[2:length(r_t)] - y_t[1:(length(y_t)-1)]/52 
+     e_t <- c(NA, e_t) # add NA value to the first vacant position
+
+#Step 2 Convert the excess returns into an excess returns index
+     # set initial values for calculation in loop
+     g_1 <- 100
+     g_n_1 <- g_1
+     g_n <-0
+     g_t <- c(100,rep(NA, times = length(r_t)-1)) # set the excess returns index vector
+
+     for(i in 2:length(r_t)){ # use for loop
+  
+     g_n <- g_n_1 * (1 + e_t[i]) # compute excess returns one by one
+     g_t[i] <- g_n # add the excess return to the excess returns index 
+     g_n_1 <- g_n
+  
+  
+    }# end loop
+
+     rm(g_n_1, g_n,i) # remove remained values 
+     g_t
+
+#Step3 compute the number of years of data, n
+
+     n <- (nrow(data.training) - 1)/52
+
+#Step4 compute the compounded annual growth rate, CAGR
+
+     CAGR <- (g_t[length(g_t)]/g_1)^(1/n) - 1
+
+#Step5 compute the annualized volatility, v
+
+     v <- sqrt(52)*sd(e_t, na.rm = T)
+#Step6 compute the Sharpe Ratio, SR
+
+     SR <- CAGR/v 
+
+    return(SR)
+
+} # end function
+
+SR.SPY <- function.SR(r_t.spy, y_t.fed)
+SR.SPY # which is 0.2807176
+SR.TLT <- function.SR(r_t.tlt, y_t.fed)
+SR.TLT # which is -0.01095925
+
+# construct a function to compute the sharpe ratio of portfolio
+r.spy <- data.training$tr.spy # set the initial returns' vector for the function
+r.tlt <- data.training$tr.tlt # set the initial returns' vector for the function
+r.fed <- data.training$fed.rate# set the initial federate rate's vector for the function
+
+rt.por <- function(x,r.spy,r.tlt,r.fed){
+  
+  SR.p <- rep(NA , times = length(x)) # set the vector of the sharpe ratio of the portfolio
+  
+  for(i in 1:length(x)){ # use a for loop 
+    
+  rt.portfolio <- x[i]*r.spy[2:length(r.spy)] + (1-x[i]) * r.tlt[2:length(r.tlt)]
+  
+  SR.p[i] <- function.SR(rt.portfolio,r.fed) # use the sharpe ratio function in Problem 6 to compute sharpe ratio of portfolio
+   
+  } # end loop 
+  
+ return(SR.p)
+}# end function
+
+rt.por(x = seq(0.1,0.9, length = 100), r.spy, r.tlt, r.fed) # test the function
+
+# plot the sharep ratio for weights between 0 and 1
+curve( rt.por(x, r.spy, r.tlt, r.fed), from = 0, to = 1, las = T, xlab = "Weights (X) allocated to SPY", 
+      ylab = "Sharpe Ratio", main = "Sharpe Ratio of the portfolio :\nR_portfolio = X*R_spy + (1-X)*R_tlt", lwd = 2)
+dev.off()
+
+# determine the optimum weight for each asset
+optimize(rt.por, r.spy = data.training$tr.spy[2:nrow(data.training)], r.tlt = data.training$tr.tlt[2:nrow(data.training)],
+         r.fed = data.training$fed.rate[1:(nrow(data.training)-1)], c(0,1), maximum = T)
+
+# the plot constructed in problem 7
+curve( rt.por(x, r.spy, r.tlt, r.fed), from = 0, to = 1, las = T, xlab = "Weights (X) allocated to SPY", 
+       ylab = "Sharpe Ratio", main = "Sharpe Ratio of the portfolio :\nR_portfolio = X*R_spy + (1-X)*R_tlt", lwd = 2)
+# add two lines to the plot to state the maximum point
+abline( v= optimize(rt.por, r.spy = data.training$tr.spy[2:570], r.tlt = data.training$tr.tlt[2:570],
+                     r.fed = data.training$fed.rate[1:569], c(0,1), maximum = T)$maximum, col = "firebrick", lty = 2 )
+abline( h= optimize(rt.por, r.spy = data.training$tr.spy[2:570], r.tlt = data.training$tr.tlt[2:570],
+                    r.fed = data.training$fed.rate[1:569], c(0,1), maximum = T)$objective, col = "firebrick", lty = 2 )
+
+# the federal funds rate in test data set has been already converted in Problem 3
+
+# compute the total returns of asset S&P 500 in test set
+tr.spy.test <- (data.test$close.spy[2:nrow(data.test)] - 
+                  data.test$close.spy[1:(nrow(data.test)-1)])/data.test$close.spy[1:(nrow(data.test)-1)] 
+tr.spy.test <- c(NA,tr.spy.test) # add NA value as the first total return (for 2014-01-08) since there is no P_t-1
+data.test <- data.frame(data.test, "tr.spy.test" = tr.spy.test) # add returns vector to the data frame of test set
+
+# compute the total returns of asset long term treasury bonds ETF assets in test set
+tr.tlt.test <- (data.test$close.tlt[2:nrow(data.test)] - 
+                  data.test$close.tlt[1:(nrow(data.test)-1)])/data.test$close.tlt[1:(nrow(data.test)-1)] 
+tr.tlt.test <- c(NA,tr.tlt.test) # add NA value as the first total return (for 2014-01-08) since there is no P_t-1
+data.test <- data.frame(data.test, "tr.tlt.test" = tr.tlt.test)
+
+# compute the returns of combined portfolio
+tr.por.test <- data.test$tr.spy.test*optimize(rt.por, r.spy = data.training$tr.spy[2:570], r.tlt = data.training$tr.tlt[2:570],
+                r.fed = data.training$fed.rate[1:569], c(0,1), maximum = T)$maximum + data.test$tr.tlt.test*
+                (1-optimize(rt.por, r.spy = data.training$tr.spy[2:570], r.tlt = data.training$tr.tlt[2:570],
+                 r.fed = data.training$fed.rate[1:569], c(0,1), maximum = T)$maximum)
+
+data.test <- data.frame(data.test, "tr.por.test" = tr.por.test) # add the vector to the test data set
+rm(tr.por.test) # remove the vector of return of portfolio
+
+# All the data we need is stated below
+# r_t.test.spy <- data.test$tr.spy.test
+# r_t.test.tlt <- data.test$tr.tlt.test
+# r_t.test.por <- data.test$tr.por.test
+# y_t.test.fed <- data.test$fed.rate
+
+# construct a function to compute the excess returns index 
+index.excess <- function(r_t.test, y_t.test){
+  
+  #Step 1 compute the excess returns
+  e_t <- r_t.test[2:length(r_t.test)] - y_t.test[2:length(r_t.test)]/52
+  e_t <- c(NA, e_t)# add NA value to the first vacant position
+  
+  #Step 2 Convert the excess returns into an excess returns index
+  # set initial values for calculation in loop
+  g_1 <- 100
+  g_n_1 <- g_1
+  g_n <-0
+  g_t <- c(100,rep(NA, times = length(r_t.test)-1)) # set the excess returns index vector
+  
+  for(i in 2:length(r_t.test)){ # use for loop
+    
+    g_n <- g_n_1 * (1 + e_t[i]) # 
+    g_t[i] <- g_n
+    g_n_1 <- g_n
+  
+    
+  } # end loop
+  
+  return(g_t) # output the excess return index 
+} # end function
+
+# compute the excess returns index for each asset
+ex.spy <- index.excess(data.test$tr.spy.test,data.test$fed.rate) # the excess returns index for SPY
+ex.tlt <- index.excess(data.test$tr.tlt.test,data.test$fed.rate) # the excess returns index for TLT
+ex.por <- index.excess(data.test$tr.por.test,data.test$fed.rate) # the excess returns index for portfolio
+
+data.test.temp <- data.frame(data.test, "ex.spy" = ex.spy, "ex.tlt" = ex.tlt, "ex.por" = ex.por) 
+
+# construct the time series of plot of three assets
+plot(x = data.test.temp$date ,y = data.test.temp$ex.spy, las =T, 
+     main = "Time Series Plot of excess returns of\nSPY&TLT&Portfolio", 
+     type = "l", xlab = "Month in 2014", ylab = "Excess Return" , col = "limegreen", lwd = 2 , ylim = c(94,120)) 
+lines(x = data.test.temp$date, y = data.test.temp$ex.tlt, col = "cornflowerblue", lwd =2, lty =2 ) # add the line of TLT
+lines(x= data.test.temp$date, y = data.test.temp$ex.por, col = "red", lwd =2, lty =4) # add the line of portfolio
+legend("topleft", legend = c("SPY","TLT", "Portfolio"), col = c("limegreen", "cornflowerblue", "red"), lty = c(1,2,4),
+       bty = "n", lwd =2 ,cex = 1.2) # add a legend to the plot
+abline(h=100, lty =3, lwd = 1) # add a line to the at Y-axis
+
+data.test.temp[nrow(data.test.temp),c("ex.spy","ex.tlt", "ex.por")] # extract 
