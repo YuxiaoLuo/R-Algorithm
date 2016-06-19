@@ -1,0 +1,233 @@
+################################################################################################################################
+#  Yuxiao Luo                 yluo52@fordham.edu                                                    
+#  Linear regression model for predicting sales 
+#  Data source: http://data.worldbank.org/
+#  The data of this project is from worldbank database, you can select the explanatory variables based on your understanding.
+#  I chose 8 varaibles to begin with. They are included in the data folder, if you want to use them directly.
+#  I highly recommend you to select the variables based on your own judgement and you would have fun.
+################################################################################################################################
+
+# input Gini index and clean
+x <- read.csv("Gini.csv", header = T, stringsAsFactors = F, sep = ",")
+dim(x)
+head(x)
+tail(x)
+
+# clean totally null columns
+x$colnames(x[,c(28,29)])
+new <- x[,-c(28,29)]
+x <- new
+rm(new)
+x <- x[1:214,]
+
+# replace ".." with NA 
+for(i in 5:27){
+      x[which(x[,i] == ".." ),i] <- NA
+   }# end for loop
+rm(i)
+x <- x[,3:27]
+
+# find which year has complete data 
+new <- x[,c(1,2,24)]
+colnames(new)[3] <- "Gini_2012"
+new$Gini_2012 <- as.numeric(new$Gini_2012)
+
+# input other data and clean 
+indices <- read.csv("GDP_Growth.csv", header = T, stringsAsFactor = F, sep = ",")
+
+# clean and extract GDP_Growth
+gdp.g <- indices[1:214,]
+gdp.g <- replace(gdp.g,gdp.g == ".." , NA) # replace ".." with  NA 
+gdp.g$X2012..YR2012.[61] <- gdp.g$X2011..YR2011.[61] # use 2011 data in the vacancy of 2012
+gdp.g$X2012..YR2012.[134] <- gdp.g$X2013..YR2013.[134] # use 2013 data in the vacancy of 2012
+GDP_growth_2012 <- gdp.g$X2012..YR2012.
+class(GDP_growth_2012)
+GDP_growth_2012 <- as.numeric(GDP_growth_2012)
+
+new <- cbind(new,GDP_growth_2012)
+rm(gdp.g, GDP_growth_2012)
+
+# clean and extract Life expectancy at birth, total (years)
+life <- indices[indices$ï..Series.Name == "Life expectancy at birth, total (years)",]
+rownames(life) <- 1:nrow(life)
+life <- life[1:214,3:ncol(life)]
+life <- replace(life, life == "..", NA)
+
+# use previous or later data to fix the vacancy of 2012 data
+life$X2012..YR2012.[50] <- life$X2011..YR2011.[50]
+life$X2012..YR2012.[161] <- life$X2011..YR2011.[161]
+
+Life_exp_2012 <- life$X2012..YR2012.
+
+Life_exp_2012 <- as.numeric(Life_exp_2012)
+new <- cbind(new, Life_exp_2012)
+rm(life, Life_exp_2012)
+
+# clean and extract population (total)
+pop <- indices[indices$ï..Series.Name == "Population, total",]
+rownames(pop) <- 1:nrow(pop)
+pop <- pop[1:214, 3:ncol(pop)]
+sum(complete.cases(pop) == F) # data of population (total) is complete 
+
+Population_total_2012 <- pop$X2012..YR2012.
+Population_total_2012 <- as.numeric(Population_total_2012)
+new <- cbind(new, Population_total_2012)
+rm(pop, Population_total_2012)
+
+# clean and extract unemployment (% of total labor force)
+unem <- indices[indices$ï..Series.Name == "Unemployment, total (% of total labor force)",]
+rownames(unem) <- 1:nrow(unem)
+unem <- unem[1:214, 3:ncol(unem)]
+sum(complete.cases(unem) == F)
+
+Unemployment_2012 <- unem$X2012..YR2012.
+Unemployment_2012 <- as.numeric(Unemployment_2012)
+new <- cbind(new, Unemployment_2012)
+rm(unem, Unemployment_2012)
+
+# clean and extract internet users
+int_users <- indices[indices$ï..Series.Name == "Internet users (per 100 people)",]
+rownames(int_users) <- 1:nrow(int_users)
+int_users <- int_users[1:214, 3:ncol(int_users)]
+int_users <- replace(int_users, int_users == "..", NA) # replace ".." with NA
+
+Internet_users_2012 <- int_users$X2012..YR2012.
+Internet_users_2012 <- as.numeric(Internet_users_2012)
+new <- cbind(new, Internet_users_2012)
+rm(int_users, Internet_users_2012)
+
+# clean and extract time required to start a business
+tim <- read.csv("Time required to start a business.csv", header = T, stringsAsFactors = F, sep = ",")
+tim <- tim[1:214,]
+tim <- replace(tim, tim == "..", NA ) # replace ".." with NA
+tim$X2012..YR2012.[c(16,27,41,87,88,96,158)] <- tim$X2013..YR2013.[c(16,27,41,87,88,96,158)] # fix 2012 data with 2013 data
+Time_start_2012 <- tim$X2012..YR2012. 
+Time_start_2012 <- as.numeric(Time_start_2012) #coerce data type
+new <- cbind(new, Time_start_2012)
+rm(tim, Time_start_2012)
+
+# clean and extract total tax rate
+tax <- read.csv("Total tax rate.csv", header = T, stringsAsFactors = F, sep = ",")
+tax <- tax[1:214,]
+tax <- replace(tax, tax == "..", NA) #replace ".." with NA
+# fix 2012 data with 2013 data
+tax$X2012..YR2012.[c(16,27,41,87,88,96,126,142,146,158,204)] <- tax$X2013..YR2013.[c(16,27,41,87,88,96,126,142,146,158,204)]
+Total_tax_2012 <- tax$X2012..YR2012.
+Total_tax_2012 <- as.numeric(Total_tax_2012) 
+new <- cbind(new , Total_tax_2012)
+rm(tax, Total_tax_2012)
+
+# clean and extract water productivity
+water <- read.csv("Water productivity.csv", header = T, stringsAsFactors =  F, sep = ",")
+water <- water[1:214, 3:ncol(water)]
+water <- replace(water, water == "..", NA)
+sum(complete.cases(water$X2012..YR2012.)) # replace ".." with NA
+Water_2012 <- water$X2012..YR2012.
+Water_2012 <- as.numeric(Water_2012)
+new <- cbind(new, Water_2012)
+rm(Water_2012, water)
+
+# construct the clean data set
+n <- new[complete.cases(new$Gini_2012),]
+n <- n[complete.cases(n$Unemployment_2012),]
+n <- n[complete.cases(n$Time_start_2012),]
+n <- n[complete.cases(n$Water_2012),]
+rownames(n) <- 1:nrow(n)
+
+# reponse variable choice
+par(mfrow = c(1,2))
+hist(n$Gini_2012, col = "darkolivegreen4", las = T, main = "Histogram of Gini Index", xlab = "Gini") 
+hist(log(n$Gini_2012), col = "darkolivegreen4", las = T, main = "Histogram of Log Gini Index", xlab = "Log Gini")
+
+# stepwise regression
+require(leaps)
+forward.step <- regsubsets(Gini_2012 ~ GDP_growth_2012 + Life_exp_2012 + Population_total_2012 + Unemployment_2012 +
+                             Internet_users_2012 + Time_start_2012 + Total_tax_2012 + Water_2012, data = n, method = "forward")
+summary(forward.step)
+round(summary(forward.step)$cp, digits=1)
+plot(forward.step, scale="Cp", main=expression(paste("Comparing ", C[p], " values across models")))
+
+# histogram of explanatory
+hist(n$GDP_growth_2012, col = "darkolivegreen4", las = T, xlab = "Annual %", main = "Histogram of GDP growth")
+hist(n$Life_exp_2012, col = "darkolivegreen4", las = T, xlab = "Years", main = "Histogram of Life Expectancy")
+# sactterplot matrix
+pairs(n[,c("GDP_growth_2012","Life_exp_2012", "Population_total_2012", "Unemployment_2012", "Internet_users_2012", "Time_start_2012",
+        "Total_tax_2012", "Water_2012","Gini_2012")], main = "Pairwise Scatterplots of Quantitative Variables", 
+      las = T, col = "#0080ff70", pch = 19)
+
+# VIF to determine multiollinearity 
+require(usdm)
+vif(n[,c("GDP_growth_2012","Life_exp_2012", "Population_total_2012", "Unemployment_2012", "Internet_users_2012", "Time_start_2012",
+          "Total_tax_2012", "Water_2012")])
+# correlation matrix
+cor(n[,c("GDP_growth_2012","Life_exp_2012", "Population_total_2012", "Unemployment_2012", "Internet_users_2012", "Time_start_2012",
+         "Total_tax_2012", "Water_2012")])
+
+lm.1 <- lm(Gini_2012 ~ GDP_growth_2012 + Life_exp_2012 + Internet_users_2012 + Time_start_2012, data = n)
+summary(lm.1)
+
+
+lm.2 <- lm(Gini_2012 ~ GDP_growth_2012 + Internet_users_2012 + Time_start_2012, data = n)
+summary(lm.2)
+
+lm.3 <- lm(Gini_2012 ~ Internet_users_2012 + Time_start_2012, data = n)
+summary(lm.3)
+
+#partial F-test
+anova(lm.3)
+
+lm.log <- lm(log(Gini_2012) ~ Internet_users_2012 + Time_start_2012, data = n)
+summary(lm.log)
+
+# residuals vs. fitted for model 3
+col.vector <- rep("cadetblue", times=nrow(n))
+col.vector[hatvalues(lm.3) > 2*(2+1)/lm.3$df.residual] <- "red"
+
+plot(lm.3$fitted, lm.3$residuals, pch=19, col=col.vector, las=TRUE,
+     main="Residuals vs. Fitted Values", xlab="fitted values (in)", ylab="residuals (in)",
+     cex.main=1.4, cex.lab=1.4, cex.axis=1.4)
+abline(h=c(0, summary(lm.3)$sigma*2, -summary(lm.3)$sigma*2) , lty=2, lwd=2,
+       col=c("gray50", "darkolivegreen4", "darkolivegreen4")) # 0 line, +/2 2 RMSE
+
+# residuals vs. Internet_users_2012
+plot(n$Internet_users_2012, lm.3$residuals, pch=19, col=col.vector, las=TRUE,
+     main="Residuals vs. Internet_users_2012", xlab="internet users (people)", ylab="residuals (in)",
+     cex.main=1.4, cex.lab=1.4, cex.axis=1.4)
+abline(h=c(0, summary(lm.3)$sigma*2, -summary(lm.3)$sigma*2) , lty=2, lwd=2,
+       col=c("gray50", "darkolivegreen4", "darkolivegreen4")) # 0 line, +/2 2 RMSE
+
+# residuals vs. Time_start_2012
+plot(n$Time_start_2012, lm.3$residuals, pch=19, col=col.vector, las=TRUE,
+     main="Residuals vs. Time_start_2012", xlab="Time requried to start a business (days)", ylab="residuals (in)",
+     cex.main=1.4, cex.lab=1.4, cex.axis=1.4)
+abline(h=c(0, summary(lm.3)$sigma*2, -summary(lm.3)$sigma*2) , lty=2, lwd=2,
+       col=c("gray50", "darkolivegreen4", "darkolivegreen4")) # 0 line, +/2 2 RMSE
+
+# residuals vs. fitted for model 2
+col.vector <- rep("cadetblue", times=nrow(n))
+col.vector[hatvalues(lm.2) > 2*(3+1)/lm.2$df.residual] <- "red"
+plot(lm.2$fitted, lm.2$residuals, pch=19, col=col.vector, las=TRUE,
+     main="Residuals vs. Fitted Values", xlab="fitted values (in)", ylab="residuals (in)",
+     cex.main=1.4, cex.lab=1.4, cex.axis=1.4)
+abline(h=c(0, summary(lm.2)$sigma*2, -summary(lm.2)$sigma*2) , lty=2, lwd=2,
+       col=c("gray50", "darkolivegreen4", "darkolivegreen4")) # 0 line, +/2 2 RMSE
+
+# Q-Q plot for model 3
+qqnorm(summary(lm.3)$residuals, pch = 19, las = T, main = "Normal Q-Q Plots of Residuals", cex.lab =1.3, cex.axis = 1.2, 
+       col = "cadetblue")
+qqline(summary(lm.3)$residuals, lwd = 2, col = "firebrick")
+
+# validation
+plot(lm.3$fitted,n$Gini_2012, pch=19, col=col.vector, las=TRUE,
+     main="Gini index vs. Fitted Values", xlab="fitted values (in)", ylab="Gini index", 
+     cex.main=1.4, cex.lab=1.4, cex.axis=1.4)
+cor(lm.3$fitted,n$Gini_2012)
+
+# model of all variables 
+lm.all <- lm(Gini_2012 ~ GDP_growth_2012 + Life_exp_2012 + Population_total_2012 + Unemployment_2012 +
+          Internet_users_2012 + Time_start_2012 + Total_tax_2012 + Water_2012, data = n)
+summary(lm.all)
+
+# output final data set
+require(xlsx)
+write.xlsx(n,"final data set.xlsx", sheetName = "Sheet1")
