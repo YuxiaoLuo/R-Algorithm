@@ -1,0 +1,243 @@
+####################################################################
+#  Yuxiao Luo                           yuxiaoluo@hotmail.com
+#  Data visualization exercise
+#####################################################################
+
+#load data of DP03
+x <- read.csv("ACS_13_5YR_DP03_with_ann.csv",header = T,sep = ",",stringsAsFactors = F, quote="\"")
+#load data of DP04
+y <- read.csv("ACS_13_5YR_DP04_with_ann.csv",header = T,sep = ",",stringsAsFactors = F, quote="\"")
+
+
+U <- x$HC03_VC07
+H <- y$HC03_VC65
+N <- y$HC03_VC84
+L <- y$HC03_VC112
+
+#transform the type to numeric regarding the  annotations
+
+U <- as.numeric(as.character(U[2:289]))
+H <- as.numeric(as.character(H[2:289]))
+N <- as.numeric(as.character(N[2:289]))
+L <- as.numeric(as.character(L[2:289]))
+
+#transform the low occupancy to overcrowded
+O <- 100 - L
+rm(L)  
+
+#clean data and search for blank space
+which(U == "") 
+which(H == "") 
+which(N == "")
+which(O == "")
+
+
+#clean data and search for incomplete data
+U[!complete.cases(x)]
+y[!complete.cases(y),]
+
+
+# merge the tables into one data frame
+z <- data.frame("Geography" = y$GEO.display.label[2:289],"Unemployment" = U,"Housing.Tenure" = H,
+                "No.Vehicles" = N, "Overcrowded" = O )
+z
+
+par(mfrow=c(1,2)) # figure with 2 plots: (1 row, 2 columns)
+
+# histogram of unemployment
+hist(z$Unemployment,  las=TRUE, 
+     col="cadetblue", density=30, angle=50, border="black",
+     main="Unemployment", 
+     xlab="Geography(%)", ylab="frequency")
+
+# histogram of housing tenure
+hist(z$Housing.Tenure,  las=TRUE, 
+     col="cadetblue", density=30, angle=50, border="black",
+     main="Housing Tenure", 
+     xlab="Housing Tenure(%)", ylab="frequency")
+
+# histogram of no vechicles 
+hist(z$No.Vehicles,  las=TRUE, 
+     col="cadetblue", density=30, angle=50, border="black",
+     main="No Vechicles", 
+     xlab="No Vechicles(%)", ylab="frequency")
+
+# histogram of low occupancy
+hist(z$Overcrowded,  las=TRUE, 
+     col="cadetblue", density=30, angle=50, border="black",
+     main="Overcrowded", 
+     xlab="Overcrowded(%)", ylab="frequency")
+
+dev.off()
+
+### Calculating the summary statistics
+
+summary(z[1:289,2:5]) # compute the summary 
+
+sd(z$Unemployment,na.rm = T) # compute the standard deviation
+
+sd(z$Housing.Tenure,na.rm=T)
+
+sd(z$No.Vehicles,na.rm = T)
+
+sd(z$Overcrowded,na.rm = T)
+
+##Problem 4
+
+#calculate the missing observation in unployment variable
+sum(is.na(z$Unemployment))
+
+sum(is.na(z$Housing.Tenure))
+
+sum(is.na(z$No.Vehicles))
+
+sum(is.na(z$Overcrowded))
+
+#calculate the percentage of census tracts do not have complete data
+z.clean <- subset(z,!is.na(z$Overcrowded))
+1-nrow(z.clean)/nrow(z) #fraction missing 
+
+##Problem 5
+
+#plot the scatter plot matrices of four variables 
+pairs(z[,c("Unemployment", "Housing.Tenure","No.Vehicles","Overcrowded")])
+
+dev.off() # clean the plot
+
+#transform the variables to reduce skewness 
+t.u <- log(z$Unemployment+1)
+t.h <- log(z$Housing.Tenure+1)
+t.n <- sqrt(z$No.Vehicles)
+t.o <- log(z$Overcrowded+1)
+
+# construct a new data frame with adding variables
+z.temp <- data.frame("Geography" = y$GEO.display.label[2:289],"Unemployment" = U,"Housing.Tenure" = H,
+                "No.Vehicles" = N, "Overcrowded" = O, "Transformed.unemp" = t.u, "Transformed.housing" = t.h, 
+                "Transformed.vehicles" = t.n, "Transformed.over" = t.o)
+z <- z.temp 
+rm(z.temp)
+
+# generate another scatter plot matrix
+pairs(z[,c("Transformed.unemp", "Transformed.housing","Transformed.vehicles","Transformed.over")])
+
+dev.off()
+
+# construct a correlation matrix of the transformed variables
+cor(z[2:289,c("Transformed.unemp", "Transformed.housing","Transformed.vehicles","Transformed.over")]) 
+
+
+
+##Problem 6:
+
+z.n <- data.frame("Geography" = y$GEO.display.label[2:289],"Transformed.unemp" = t.u, "Transformed.housing" = t.h, 
+                  "Transformed.vehicles" = t.n, "Transformed.over" = t.o)
+
+#compute the Townsend index value for each census tract
+# compute geographic region mean t.j and std s.j for each variable j
+mean.unemp <- mean(z.n$Transformed.unemp,na.rm = T)
+mean.hou <- mean(z.n$Transformed.housing,na.rm = T)
+mean.veh <- mean(z.n$Transformed.vehicles,na.rm = T)
+mean.over <- mean(z.n$Transformed.over,na.rm = T)
+
+sd.unemp <- sd(z.n$Transformed.unemp,na.rm=T)
+sd.hou <- sd(z.n$Transformed.housing,na.rm=T)
+sd.veh <- sd(z.n$Transformed.vehicles,na.rm=T)
+sd.over <- sd(z.n$Transformed.over,na.rm=T)
+
+# compute the standardize variables for each region i and variable j
+
+sv.unemp <- (z.n$Transformed.unemp-mean.unemp)/sd.unemp
+sv.hou <- (z.n$Transformed.housing-mean.hou)/sd.hou
+sv.veh <- (z.n$Transformed.vehicles-mean.veh)/sd.veh
+sv.over <- (z.n$Transformed.over-mean.over)/sd.over
+
+# compute Townsend index 
+
+townsend <- c(sv.unemp + sv.hou + sv.veh + sv.over)
+
+# add the index to the data frame
+z.n <- data.frame("Geography" = y$GEO.display.label[2:289],"Transformed.unemp" = t.u, "Transformed.housing" = t.h, 
+                  "Transformed.vehicles" = t.n, "Transformed.over" = t.o, "Townsend" = townsend)
+z.n
+View(z.n)
+
+# check the most deprived census tract and the least deprived census tract 
+z.n[which.max(z.n$Townsend),]
+z.n[which.min(z.n$Townsend),]
+
+#construct a new data frame
+id <- data.frame(x$GEO.display.label[2:289],x$GEO.id2[2:289],townsend)
+
+#custom the column names of the data frame
+colnames(id) <- c("GEO.id","GEO.id2","Townsend")
+View(id)
+
+
+##Problem 7
+# see the solution document
+
+##Problem 8
+
+#install required package
+#load required packages
+library(maps)
+library(maptools)
+library(RColorBrewer)
+library(rgdal)
+
+# read in shape files
+usa.map <- readOGR(dsn = "tl_2013_36_tract",layer = "tl_2013_36_tract")
+
+summary(usa.map)
+plot(usa.map)
+map.data <- usa.map@data
+
+# grab the New York County out of the usa.map by matching GEO.id2 information
+sub.map <- subset(usa.map,is.element(usa.map$GEOID,id$GEO.id2))
+# extract the data of sub.map
+submap.data <- sub.map@data
+
+# delete other parts of NY
+plot(sub.map) 
+row.names(sub.map) <- as.character(sub.map$GEOID)
+
+# rename id
+row.names(id) <- id$GEO.id2 
+id <- id[row.names(sub.map),]
+map.new <- spCbind(sub.map,id)
+
+# list the maximum and minimum in townsend
+range(townsend,na.rm = T) 
+seq(from=max(townsend,na.rm = T),to=min(townsend,na.rm = T),length=9)
+map.new@data
+plot.variable <- map.new@data$Townsend
+
+breaks.factor <- cut(plot.variable,breaks=seq(max(townsend,na.rm = T)),to=min(townsend,na.rm = T),length=9)
+
+# set the color palette
+color.palette <- rev(brewer.pal(n=length(levels(breaks.factor)),"Spectral"))  
+display.brewer.pal(length(levels(breaks.factor)),"Spectral")
+color.coding <- color.palette[as.numeric(breaks.factor)]
+plot(map.new,col=color.coding)
+map.new@bbox
+
+
+text(-74,40.8755,cex=0.8,labels=c("Deprivation of New York County\n(Source:US Census Bureau 2013)"))
+row.names(map.new) <- as.character(map.new@data$NAME)
+
+#mark Loewnstein Center in the map 
+
+points(coordinates(map.new["145",]), cex=1.2, pch=19) 
+# add legend
+legend("bottomleft",legend=c(levels(breaks.factor),"no data","Lowenstein"),fill=c(color.palette,"white","black"),cex=0.5,bty="n",y.intersp = 1.2,ncol = 2)
+
+map.new@bbox
+
+
+#rank of Lowenstein
+temp.rank <- sort(map.new$Townsend)
+index.LLB <- map.new$Townsend[map.new$NAMELSAD == "Census Tract 145"]
+rank.LLB <- 280 - (1:279)[temp.rank == index.LLB]
+
+#save a plot to PDF file
+pdf("Deprivation of NYC.pdf", width=10, height=11) 
