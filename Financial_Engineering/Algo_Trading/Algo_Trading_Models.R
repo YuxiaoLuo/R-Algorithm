@@ -1,7 +1,6 @@
 ########################################################################
 #  Final Project for Algorithm Trading 
-#  Author: Yuxiao Luo   E-mail: yluo52@fordham.edu
-#  https://github.com/YuxiaoLuo
+#  Author: Yuxiao Luo  
 #  Updated: 07/10/2016
 #  Data is attached in the data file 
 ########################################################################
@@ -237,7 +236,7 @@ data.nls.part <- rbind(data.nls.part, "T-stat" = c(mean(data.nls.part[,1])/data.
                                                    mean(data.nls.part[,4])/data.nls.part["SE",][4],
                                                    mean(data.nls.part[,5])/data.nls.part["SE",][5]))
 
-####################Problem 3
+#################### Problem 3
 
 ## data needed
 # Covariance matrix: c
